@@ -1,7 +1,7 @@
 version: v1beta11
 vars:
   - name: PLUGIN_IMAGE
-    value: ghcr.io/loft-sh/vcluster-cert-manager-plugin
+    value: ghcr.io/loft-sh/vcluster-plugins/cert-manager-plugin
   - name: K3S_IMAGE
     value: rancher/k3s:v1.23.5-k3s1
   - name: SERVICE_CIDR

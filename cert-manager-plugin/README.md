@@ -6,7 +6,7 @@ This plugin syncs cert-manager issuers and certificates across the host and virt
 
 Deploy vcluster with the plugin:
 ```
-vcluster create my-vcluster -n my-vcluster -f https://raw.githubusercontent.com/FabianKramm/vcluster-cert-manager-plugin/main/plugin.yaml
+vcluster create my-vcluster -n my-vcluster -f https://raw.githubusercontent.com/loft-sh/vcluster-plugins/master/cert-manager-plugin/plugin.yaml
 ```
 
 Now wait until vcluster has started and deploy a cert-manager issuer into the vcluster:

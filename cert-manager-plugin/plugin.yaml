@@ -2,7 +2,7 @@
 # with the other vcluster values during vcluster create or helm install.
 plugin:
   cert-manager-plugin:
-    image: ghcr.io/loft-sh/vcluster-cert-manager-plugin:v1
+    image: ghcr.io/loft-sh/vcluster-plugins/cert-manager-plugin:0.1.0
     imagePullPolicy: IfNotPresent
     rbac:
       role:
