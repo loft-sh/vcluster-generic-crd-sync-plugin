@@ -1,0 +1,53 @@
+version: v1beta11
+vars:
+  - name: PLUGIN_IMAGE
+    value: ghcr.io/loft-sh/vcluster-cert-manager-plugin
+  - name: K3S_IMAGE
+    value: rancher/k3s:v1.23.5-k3s1
+  - name: SERVICE_CIDR
+    command: vcluster get service-cidr
+images:
+  vcluster:
+    image: ${PLUGIN_IMAGE}
+    dockerfile: ./Dockerfile.dev
+    rebuildStrategy: ignoreContextChanges
+deployments:
+  - name: vcluster
+    helm:
+      chart:
+        name: vcluster
+        repo: https://charts.loft.sh
+        version: 0.9.0-alpha.0
+      valuesFiles:
+        - plugin.yaml
+      values:
+        plugin:
+          cert-manager:
+            image: ${PLUGIN_IMAGE}
+        serviceCIDR: ${SERVICE_CIDR}
+        serviceAccount:
+          create: false
+          name: default
+        vcluster:
+          image: ${K3S_IMAGE}
+        rbac:
+          clusterRole:
+            create: true
+          role:
+            extended: true
+        syncer:
+          readinessProbe:
+            enabled: false
+          livenessProbe:
+            enabled: false
+dev:
+  terminal:
+    imageSelector: ${PLUGIN_IMAGE}
+    command: ["./devspace_start.sh"]
+  ports:
+    - imageSelector: ${PLUGIN_IMAGE}
+      forward:
+        - port: 2346
+          remotePort: 2345
+  sync:
+    - imageSelector: ${PLUGIN_IMAGE}
