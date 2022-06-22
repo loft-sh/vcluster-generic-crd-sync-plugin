@@ -1,0 +1,353 @@
+{"level":"info","msg":"[0:sync] Trying to download devspacehelper into pod vcluster/vcluster-0","time":"2022-06-20T14:05:38+05:30"}
+{"level":"info","msg":"[0:sync] Successfully injected devspacehelper into pod vcluster/vcluster-0","time":"2022-06-20T14:05:42+05:30"}
+{"level":"info","msg":"[0:sync] Start syncing","time":"2022-06-20T14:05:42+05:30"}
+{"level":"info","msg":"[0:sync] Helper - Use inotify as watching method in container","time":"2022-06-20T14:05:42+05:30"}
+{"level":"info","msg":"[0:sync] Downstream - Initial sync completed","time":"2022-06-20T14:05:42+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 4453 create change(s) (Uncompressed ~51166.02 KB)","time":"2022-06-20T14:05:43+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 4453 change(s)","time":"2022-06-20T14:05:49+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Initial sync completed","time":"2022-06-20T14:05:50+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/syncer.go'","time":"2022-06-20T15:02:04+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~2.36 KB)","time":"2022-06-20T15:02:04+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T15:02:04+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/syncer.go'","time":"2022-06-20T15:04:27+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~1.70 KB)","time":"2022-06-20T15:04:27+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T15:04:27+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/syncer.go'","time":"2022-06-20T15:05:02+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~1.68 KB)","time":"2022-06-20T15:05:02+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T15:05:02+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/syncer.go'","time":"2022-06-20T15:06:22+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~1.81 KB)","time":"2022-06-20T15:06:22+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T15:06:22+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/syncer.go'","time":"2022-06-20T15:09:41+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~2.10 KB)","time":"2022-06-20T15:09:41+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T15:09:41+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/syncer.go'","time":"2022-06-20T15:12:11+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~2.14 KB)","time":"2022-06-20T15:12:11+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T15:12:11+05:30"}
+{"level":"info","msg":"[0:sync] Trying to download devspacehelper into pod vcluster/vcluster-0","time":"2022-06-20T15:19:12+05:30"}
+{"level":"info","msg":"[0:sync] Successfully injected devspacehelper into pod vcluster/vcluster-0","time":"2022-06-20T15:19:17+05:30"}
+{"level":"info","msg":"[0:sync] Start syncing","time":"2022-06-20T15:19:17+05:30"}
+{"level":"info","msg":"[0:sync] Helper - Use inotify as watching method in container","time":"2022-06-20T15:19:17+05:30"}
+{"level":"info","msg":"[0:sync] Downstream - Initial sync completed","time":"2022-06-20T15:19:17+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 4453 create change(s) (Uncompressed ~51166.44 KB)","time":"2022-06-20T15:19:18+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 4453 change(s)","time":"2022-06-20T15:19:24+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Initial sync completed","time":"2022-06-20T15:19:25+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'devspace.yaml'","time":"2022-06-20T15:22:01+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~1.44 KB)","time":"2022-06-20T15:22:01+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T15:22:01+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'devspace.yaml'","time":"2022-06-20T15:38:45+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~1.52 KB)","time":"2022-06-20T15:38:45+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T15:38:45+05:30"}
+{"level":"info","msg":"[0:sync] Trying to download devspacehelper into pod vcluster/vcluster-0","time":"2022-06-20T15:45:26+05:30"}
+{"level":"info","msg":"[0:sync] Successfully injected devspacehelper into pod vcluster/vcluster-0","time":"2022-06-20T15:45:31+05:30"}
+{"level":"info","msg":"[0:sync] Start syncing","time":"2022-06-20T15:45:31+05:30"}
+{"level":"info","msg":"[0:sync] Helper - Use inotify as watching method in container","time":"2022-06-20T15:45:31+05:30"}
+{"level":"info","msg":"[0:sync] Downstream - Initial sync completed","time":"2022-06-20T15:45:31+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 4453 create change(s) (Uncompressed ~51166.44 KB)","time":"2022-06-20T15:45:32+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 4453 change(s)","time":"2022-06-20T15:45:37+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Initial sync completed","time":"2022-06-20T15:45:38+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'devspace.yaml'","time":"2022-06-20T15:46:17+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~1.29 KB)","time":"2022-06-20T15:46:17+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T15:46:17+05:30"}
+{"level":"info","msg":"[0:sync] Trying to download devspacehelper into pod vcluster/vcluster-0","time":"2022-06-20T15:47:17+05:30"}
+{"level":"info","msg":"[0:sync] Successfully injected devspacehelper into pod vcluster/vcluster-0","time":"2022-06-20T15:47:20+05:30"}
+{"level":"info","msg":"[0:sync] Start syncing","time":"2022-06-20T15:47:20+05:30"}
+{"level":"info","msg":"[0:sync] Helper - Use inotify as watching method in container","time":"2022-06-20T15:47:20+05:30"}
+{"level":"info","msg":"[0:sync] Downstream - Initial sync completed","time":"2022-06-20T15:47:20+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 4453 create change(s) (Uncompressed ~51166.44 KB)","time":"2022-06-20T15:47:21+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 4453 change(s)","time":"2022-06-20T15:47:26+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Initial sync completed","time":"2022-06-20T15:47:27+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'devspace.yaml'","time":"2022-06-20T15:47:44+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~1.29 KB)","time":"2022-06-20T15:47:44+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T15:47:44+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'devspace.yaml'","time":"2022-06-20T15:48:00+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~1.23 KB)","time":"2022-06-20T15:48:00+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T15:48:00+05:30"}
+{"level":"info","msg":"[0:sync] Trying to download devspacehelper into pod vcluster/vcluster-0","time":"2022-06-20T15:55:41+05:30"}
+{"level":"info","msg":"[0:sync] Successfully injected devspacehelper into pod vcluster/vcluster-0","time":"2022-06-20T15:55:44+05:30"}
+{"level":"info","msg":"[0:sync] Start syncing","time":"2022-06-20T15:55:44+05:30"}
+{"level":"info","msg":"[0:sync] Helper - Use inotify as watching method in container","time":"2022-06-20T15:55:44+05:30"}
+{"level":"info","msg":"[0:sync] Downstream - Initial sync completed","time":"2022-06-20T15:55:44+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 4453 create change(s) (Uncompressed ~51166.38 KB)","time":"2022-06-20T15:55:45+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 4453 change(s)","time":"2022-06-20T15:55:51+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Initial sync completed","time":"2022-06-20T15:55:52+05:30"}
+{"level":"info","msg":"[0:sync] Trying to download devspacehelper into pod vcluster/vcluster-0","time":"2022-06-20T16:20:58+05:30"}
+{"level":"info","msg":"[0:sync] Successfully injected devspacehelper into pod vcluster/vcluster-0","time":"2022-06-20T16:21:02+05:30"}
+{"level":"info","msg":"[0:sync] Start syncing","time":"2022-06-20T16:21:02+05:30"}
+{"level":"info","msg":"[0:sync] Helper - Use inotify as watching method in container","time":"2022-06-20T16:21:02+05:30"}
+{"level":"info","msg":"[0:sync] Downstream - Initial sync completed","time":"2022-06-20T16:21:02+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 4451 create change(s) (Uncompressed ~51142.38 KB)","time":"2022-06-20T16:21:03+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 4451 change(s)","time":"2022-06-20T16:21:09+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Initial sync completed","time":"2022-06-20T16:21:10+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File '.Dockerfile.dev.swp'","time":"2022-06-20T16:22:01+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-20T16:22:01+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T16:22:01+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Handling 1 removes","time":"2022-06-20T16:25:55+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.Dockerfile.dev.swp'","time":"2022-06-20T16:25:55+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.Dockerfile.dev.swp'","time":"2022-06-20T16:25:55+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File '.main.go.swp'","time":"2022-06-20T16:25:55+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-20T16:25:55+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-20T16:25:55+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'main.go'","time":"2022-06-20T16:26:02+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File '.main.go.swp'","time":"2022-06-20T16:26:02+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 2 create change(s) (Uncompressed ~12.63 KB)","time":"2022-06-20T16:26:02+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-20T16:26:02+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Handling 1 removes","time":"2022-06-20T16:28:34+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.main.go.swp'","time":"2022-06-20T16:28:34+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.main.go.swp'","time":"2022-06-20T16:28:34+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File '.devspace.yaml.swp'","time":"2022-06-20T16:28:34+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-20T16:28:34+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-20T16:28:35+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File '.plugin.yaml.swp'","time":"2022-06-20T16:30:06+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-20T16:30:06+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T16:30:06+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Handling 2 removes","time":"2022-06-20T16:35:17+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.devspace.yaml.swp'","time":"2022-06-20T16:35:17+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.devspace.yaml.swp'","time":"2022-06-20T16:35:17+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.plugin.yaml.swp'","time":"2022-06-20T16:35:17+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.plugin.yaml.swp'","time":"2022-06-20T16:35:17+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-20T16:35:17+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File '.main.go.swp'","time":"2022-06-20T16:35:21+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-20T16:35:21+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T16:35:21+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'Makefile'","time":"2022-06-20T16:38:12+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.00 KB)","time":"2022-06-20T16:38:12+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T16:38:12+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Handling 1 removes","time":"2022-06-20T16:38:13+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.main.go.swp'","time":"2022-06-20T16:38:13+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.main.go.swp'","time":"2022-06-20T16:38:13+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File '.Makefile.swp'","time":"2022-06-20T16:38:13+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-20T16:38:13+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-20T16:38:13+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'Makefile'","time":"2022-06-20T16:38:32+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.13 KB)","time":"2022-06-20T16:38:32+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T16:38:32+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'Makefile'","time":"2022-06-20T16:38:52+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.25 KB)","time":"2022-06-20T16:38:52+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T16:38:52+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'Makefile'","time":"2022-06-20T16:57:09+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.29 KB)","time":"2022-06-20T16:57:09+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T16:57:09+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'Makefile'","time":"2022-06-20T16:57:27+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.32 KB)","time":"2022-06-20T16:57:27+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T16:57:27+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Handling 1 removes","time":"2022-06-20T17:00:28+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.Makefile.swp'","time":"2022-06-20T17:00:28+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.Makefile.swp'","time":"2022-06-20T17:00:28+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/.syncer.go.swp'","time":"2022-06-20T17:00:28+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-20T17:00:28+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-20T17:00:28+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/syncer.go'","time":"2022-06-20T17:00:46+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/.syncer.go.swp'","time":"2022-06-20T17:00:46+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 2 create change(s) (Uncompressed ~14.13 KB)","time":"2022-06-20T17:00:46+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-20T17:00:46+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/syncer.go'","time":"2022-06-20T17:00:56+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/.syncer.go.swp'","time":"2022-06-20T17:00:56+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 2 create change(s) (Uncompressed ~14.13 KB)","time":"2022-06-20T17:00:56+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-20T17:00:56+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/.syncer.go.swp'","time":"2022-06-20T17:01:13+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-20T17:01:13+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-20T17:01:13+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Handling 1 removes","time":"2022-06-20T17:01:32+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove 'pkg/syncers/ksvc/.syncer.go.swp'","time":"2022-06-20T17:01:32+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove 'pkg/syncers/ksvc/.syncer.go.swp'","time":"2022-06-20T17:01:32+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'vendor/knative.dev/serving/pkg/apis/serving/v1/.register.go.swp'","time":"2022-06-20T17:01:32+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-20T17:01:32+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-20T17:01:32+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Handling 1 removes","time":"2022-06-20T17:01:39+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove 'vendor/knative.dev/serving/pkg/apis/serving/v1/.register.go.swp'","time":"2022-06-20T17:01:39+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove 'vendor/knative.dev/serving/pkg/apis/serving/v1/.register.go.swp'","time":"2022-06-20T17:01:39+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'vendor/knative.dev/serving/pkg/apis/serving/.register.go.swp'","time":"2022-06-20T17:01:39+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-20T17:01:39+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-20T17:01:39+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Handling 1 removes","time":"2022-06-20T17:01:43+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove 'vendor/knative.dev/serving/pkg/apis/serving/.register.go.swp'","time":"2022-06-20T17:01:43+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove 'vendor/knative.dev/serving/pkg/apis/serving/.register.go.swp'","time":"2022-06-20T17:01:43+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/.syncer.go.swp'","time":"2022-06-20T17:01:43+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-20T17:01:43+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-20T17:01:43+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/.syncer.go.swp'","time":"2022-06-20T17:05:29+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/syncer.go'","time":"2022-06-20T17:05:29+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 2 create change(s) (Uncompressed ~14.13 KB)","time":"2022-06-20T17:05:29+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-20T17:05:29+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'plugin.yaml'","time":"2022-06-21T01:43:33+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.67 KB)","time":"2022-06-21T01:43:33+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T01:43:33+05:30"}
+{"level":"info","msg":"[0:sync] Start syncing","time":"2022-06-21T01:43:58+05:30"}
+{"level":"info","msg":"[0:sync] Helper - Use inotify as watching method in container","time":"2022-06-21T01:43:59+05:30"}
+{"level":"info","msg":"[0:sync] Downstream - Initial sync completed","time":"2022-06-21T01:43:59+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/.syncer.go.swp'","time":"2022-06-21T01:44:00+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~12.00 KB)","time":"2022-06-21T01:44:00+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T01:44:00+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Initial sync completed","time":"2022-06-21T01:44:01+05:30"}
+{"level":"info","msg":"[0:sync] Trying to download devspacehelper into pod vcluster/vcluster-0","time":"2022-06-21T01:46:17+05:30"}
+{"level":"info","msg":"[0:sync] Successfully injected devspacehelper into pod vcluster/vcluster-0","time":"2022-06-21T01:46:21+05:30"}
+{"level":"info","msg":"[0:sync] Start syncing","time":"2022-06-21T01:46:21+05:30"}
+{"level":"info","msg":"[0:sync] Helper - Use inotify as watching method in container","time":"2022-06-21T01:46:22+05:30"}
+{"level":"info","msg":"[0:sync] Downstream - Initial sync completed","time":"2022-06-21T01:46:22+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 4453 create change(s) (Uncompressed ~51154.69 KB)","time":"2022-06-21T01:46:22+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 4453 change(s)","time":"2022-06-21T01:46:28+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Initial sync completed","time":"2022-06-21T01:46:29+05:30"}
+{"level":"info","msg":"[0:sync] Start syncing","time":"2022-06-21T01:52:42+05:30"}
+{"level":"info","msg":"[0:sync] Helper - Use inotify as watching method in container","time":"2022-06-21T01:52:43+05:30"}
+{"level":"info","msg":"[0:sync] Downstream - Initial sync completed","time":"2022-06-21T01:52:43+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'plugin.yaml'","time":"2022-06-21T01:52:43+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.67 KB)","time":"2022-06-21T01:52:43+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T01:52:43+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Initial sync completed","time":"2022-06-21T01:52:45+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'kubeconfig.yaml'","time":"2022-06-21T01:54:00+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~2.91 KB)","time":"2022-06-21T01:54:00+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T01:54:00+05:30"}
+{"level":"info","msg":"[0:sync] Trying to download devspacehelper into pod vcluster/vcluster-0","time":"2022-06-21T13:05:26+05:30"}
+{"level":"info","msg":"[0:sync] Successfully injected devspacehelper into pod vcluster/vcluster-0","time":"2022-06-21T13:05:38+05:30"}
+{"level":"info","msg":"[0:sync] Start syncing","time":"2022-06-21T13:05:38+05:30"}
+{"level":"info","msg":"[0:sync] Helper - Use inotify as watching method in container","time":"2022-06-21T13:05:38+05:30"}
+{"level":"info","msg":"[0:sync] Downstream - Initial sync completed","time":"2022-06-21T13:05:38+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 4454 create change(s) (Uncompressed ~51157.59 KB)","time":"2022-06-21T13:05:39+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 4454 change(s)","time":"2022-06-21T13:05:45+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Initial sync completed","time":"2022-06-21T13:05:46+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'kubeconfig.yaml'","time":"2022-06-21T13:06:25+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~2.90 KB)","time":"2022-06-21T13:06:25+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T13:06:26+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'app.yaml'","time":"2022-06-21T13:06:39+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.00 KB)","time":"2022-06-21T13:06:39+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T13:06:39+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'app.yaml'","time":"2022-06-21T13:06:44+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.17 KB)","time":"2022-06-21T13:06:44+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T13:06:44+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File '.app.yaml.swp'","time":"2022-06-21T13:07:03+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-21T13:07:03+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T13:07:03+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Handling 1 removes","time":"2022-06-21T13:07:09+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.app.yaml.swp'","time":"2022-06-21T13:07:09+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.app.yaml.swp'","time":"2022-06-21T13:07:09+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'app.yaml'","time":"2022-06-21T13:07:09+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.17 KB)","time":"2022-06-21T13:07:09+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-21T13:07:09+05:30"}
+{"level":"info","msg":"[0:sync] Error: Sync Error on /Users/ishankhare/work/vcluster-plugins/knative-plugin: Sync - connection lost to pod vcluster/vcluster-0:  command terminated with exit code 137","time":"2022-06-21T16:21:39+05:30"}
+{"level":"info","msg":"[0:sync] Sync stopped","time":"2022-06-21T16:21:39+05:30"}
+{"level":"info","msg":"[0:sync] Restarting sync...","time":"2022-06-21T16:21:39+05:30"}
+{"level":"info","msg":"[0:sync] Error: Restarted because old pod vcluster/vcluster-0 has status Terminating","time":"2022-06-21T16:21:39+05:30"}
+{"level":"info","msg":"[0:sync] Waiting for containers to start...","time":"2022-06-21T16:21:39+05:30"}
+{"level":"info","msg":"[0:sync] Warning: Pod coredns-5df468b6b7-hl2gr-x-kube-system-x-vcluster: error killing pod: failed to \"KillContainer\" for \"coredns\" with KillContainerError: \"rpc error: code = Unknown desc = Error response from daemon: No such container: 1fe721ec9be85b83c027ae44ad90a23ca756576c0581408c58de07eccf92dd3f\" (FailedKillPod)","time":"2022-06-21T16:21:39+05:30"}
+{"level":"info","msg":"[0:sync] Warning: Pod coredns-5df468b6b7-hl2gr-x-kube-system-x-vcluster: Readiness probe failed: Get \"http://10.1.3.35:8181/ready\": dial tcp 10.1.3.35:8181: connect: connection refused (Unhealthy)","time":"2022-06-21T16:21:39+05:30"}
+{"level":"info","msg":"[0:sync] Warning: Pod coredns-5df468b6b7-hl2gr-x-kube-system-x-vcluster: Liveness probe failed: Get \"http://10.1.3.35:8080/health\": dial tcp 10.1.3.35:8080: connect: connection refused (Unhealthy)","time":"2022-06-21T16:21:39+05:30"}
+{"level":"info","msg":"[0:sync] Warning: Pod vpnkit-controller: Back-off restarting failed container (BackOff)","time":"2022-06-21T16:21:39+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:21:39+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:21:49+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:22:00+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:22:11+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:22:22+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:22:33+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:22:44+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:22:55+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:23:06+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:23:17+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:23:28+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:23:39+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:23:50+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:24:01+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:24:12+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:24:23+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:24:34+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:24:45+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:24:56+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:25:07+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:25:18+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:25:29+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:25:40+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:25:51+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:26:02+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:26:13+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:26:24+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:26:35+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:26:46+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:26:57+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:27:08+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:27:19+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:27:30+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:27:40+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:27:51+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:28:02+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:28:13+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:28:24+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:28:35+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:28:46+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:28:57+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:29:08+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:29:19+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:29:30+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:29:41+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:29:52+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:30:03+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:30:14+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:30:25+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:30:36+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:30:47+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:30:58+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:31:09+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:31:20+05:30"}
+{"level":"info","msg":"[0:sync] Warning: DevSpace still couldn't find any Pods that match the selector. DevSpace will continue waiting, but this operation might timeout","time":"2022-06-21T16:31:31+05:30"}
+{"level":"info","msg":"[0:sync] Trying to download devspacehelper into pod vcluster/vcluster-0","time":"2022-06-21T17:41:56+05:30"}
+{"level":"info","msg":"[0:sync] Successfully injected devspacehelper into pod vcluster/vcluster-0","time":"2022-06-21T17:42:00+05:30"}
+{"level":"info","msg":"[0:sync] Start syncing","time":"2022-06-21T17:42:00+05:30"}
+{"level":"info","msg":"[0:sync] Helper - Use inotify as watching method in container","time":"2022-06-21T17:42:00+05:30"}
+{"level":"info","msg":"[0:sync] Downstream - Initial sync completed","time":"2022-06-21T17:42:00+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 4455 create change(s) (Uncompressed ~51158.35 KB)","time":"2022-06-21T17:42:01+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 4455 change(s)","time":"2022-06-21T17:42:09+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Initial sync completed","time":"2022-06-21T17:42:10+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'kubeconfig.yaml'","time":"2022-06-21T18:01:23+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~2.90 KB)","time":"2022-06-21T18:01:23+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T18:01:23+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/syncer.go'","time":"2022-06-21T18:05:21+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~2.80 KB)","time":"2022-06-21T18:05:21+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T18:05:21+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/syncer.go'","time":"2022-06-21T18:05:36+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/.syncer.go.swp'","time":"2022-06-21T18:05:36+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 2 create change(s) (Uncompressed ~14.80 KB)","time":"2022-06-21T18:05:36+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-21T18:05:36+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/syncer.go'","time":"2022-06-21T18:06:33+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'pkg/syncers/ksvc/.syncer.go.swp'","time":"2022-06-21T18:06:33+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 2 create change(s) (Uncompressed ~14.80 KB)","time":"2022-06-21T18:06:33+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-21T18:06:33+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File '.app.yaml.swp'","time":"2022-06-21T18:06:54+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-21T18:06:54+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T18:06:54+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Handling 1 removes","time":"2022-06-21T18:49:53+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove 'pkg/syncers/ksvc/.syncer.go.swp'","time":"2022-06-21T18:49:53+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove 'pkg/syncers/ksvc/.syncer.go.swp'","time":"2022-06-21T18:49:53+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File '.Makefile.swp'","time":"2022-06-21T18:49:53+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~4.00 KB)","time":"2022-06-21T18:49:53+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 2 change(s)","time":"2022-06-21T18:49:53+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'Makefile'","time":"2022-06-21T18:50:01+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.32 KB)","time":"2022-06-21T18:50:01+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T18:50:01+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'Makefile'","time":"2022-06-21T18:51:15+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.59 KB)","time":"2022-06-21T18:51:15+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T18:51:15+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'Makefile'","time":"2022-06-21T18:52:04+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.87 KB)","time":"2022-06-21T18:52:04+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T18:52:04+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'Makefile'","time":"2022-06-21T18:52:12+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~0.87 KB)","time":"2022-06-21T18:52:12+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T18:52:12+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'Makefile'","time":"2022-06-21T18:54:03+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~1.09 KB)","time":"2022-06-21T18:54:04+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T18:54:04+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'Makefile'","time":"2022-06-21T18:54:07+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~1.09 KB)","time":"2022-06-21T18:54:07+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T18:54:07+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'Makefile'","time":"2022-06-21T18:54:17+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~1.08 KB)","time":"2022-06-21T18:54:17+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T18:54:17+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload File 'Makefile'","time":"2022-06-21T18:56:27+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Upload 1 create change(s) (Uncompressed ~1.38 KB)","time":"2022-06-21T18:56:27+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-21T18:56:27+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Handling 1 removes","time":"2022-06-22T13:19:48+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.app.yaml.swp'","time":"2022-06-22T13:19:48+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.app.yaml.swp'","time":"2022-06-22T13:19:48+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-22T13:19:48+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Handling 1 removes","time":"2022-06-22T14:01:29+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.Makefile.swp'","time":"2022-06-22T14:01:29+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Remove '.Makefile.swp'","time":"2022-06-22T14:01:29+05:30"}
+{"level":"info","msg":"[0:sync] Upstream - Successfully processed 1 change(s)","time":"2022-06-22T14:01:29+05:30"}
