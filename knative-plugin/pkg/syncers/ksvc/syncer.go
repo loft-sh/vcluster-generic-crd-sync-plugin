@@ -5,6 +5,7 @@ import (
 	"github.com/loft-sh/vcluster-sdk/syncer/context"
 	"github.com/loft-sh/vcluster-sdk/syncer/translator"
 	"github.com/loft-sh/vcluster-sdk/translate"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/klog"
 	ksvcv1 "knative.dev/serving/pkg/apis/serving/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,6 +50,22 @@ func (k *ksvcSyncer) SyncDown(ctx *context.SyncContext, vObj client.Object) (ctr
 // would get set only by the physical host cluster.
 func (k *ksvcSyncer) Sync(ctx *context.SyncContext, pObj client.Object, vObj client.Object) (ctrl.Result, error) {
 	klog.Infof("Sync called for %s : %s", pObj.GetName(), vObj.GetName())
+
+	pKsvc := pObj.(*ksvcv1.Service)
+	vKsvc := vObj.(*ksvcv1.Service)
+
+	if !equality.Semantic.DeepEqual(vKsvc.Status, pKsvc.Status) {
+		newKsvc := vKsvc.DeepCopy()
+		newKsvc.Status = pKsvc.Status
+		klog.Infof("Update virtual ksvc %s:%s, because status is out of sync", vKsvc.Namespace, vKsvc.Name)
+		err := ctx.VirtualClient.Status().Update(ctx.Context, newKsvc)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, nil
+	}
+
 	return ctrl.Result{}, nil
 }
 

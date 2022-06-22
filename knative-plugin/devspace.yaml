@@ -1,7 +1,7 @@
 version: v1beta11
 vars:
   - name: PLUGIN_IMAGE
-    value: ishankhare07/vcluster-plugins/knative-serving-plugin
+    value: ishankhare07/vcluster-knative-serving-plugin
   - name: K3S_IMAGE
     value: rancher/k3s:v1.23.5-k3s1
   - name: SERVICE_CIDR
