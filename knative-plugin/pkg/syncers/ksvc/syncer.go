@@ -54,37 +54,40 @@ func (k *ksvcSyncer) Sync(ctx *context.SyncContext, pObj client.Object, vObj cli
 	pKsvc := pObj.(*ksvcv1.Service)
 	vKsvc := vObj.(*ksvcv1.Service)
 
+	// sync and update ksvc status upwards
 	if !equality.Semantic.DeepEqual(vKsvc.Status, pKsvc.Status) {
 		newKsvc := vKsvc.DeepCopy()
 		newKsvc.Status = pKsvc.Status
 		klog.Infof("Update virtual ksvc %s:%s, because status is out of sync", vKsvc.Namespace, vKsvc.Name)
 		err := ctx.VirtualClient.Status().Update(ctx.Context, newKsvc)
 		if err != nil {
+			klog.Errorf("Error updating virtual ksvc status for %s:%s, %v", vKsvc.Namespace, vKsvc.Name, err)
 			return ctrl.Result{}, err
 		}
 
 		return ctrl.Result{}, nil
 	}
 
-	return ctrl.Result{}, nil
-}
+	// sync and update ksvc spec downwards
+	// TODO: this needs more fine grained comparision
+	// as some fields would need translation implemented
+	if newPksvc := k.translateUpdate(pKsvc, vKsvc); newPksvc != nil {
+		klog.Infof("Propagate update down to physical ksvc %s:%s as spec has changed", pKsvc.Namespace, pKsvc.Name)
+		err := ctx.PhysicalClient.Update(ctx.Context, newPksvc)
+		if err != nil {
+			klog.Infof("error updating physical ksvc %s:%s spec, %v", pKsvc.Namespace, pKsvc.Name, err)
+			return ctrl.Result{}, err
+		}
 
-func (k *ksvcSyncer) translate(vObj client.Object) *ksvcv1.Service {
-	pObj := k.TranslateMetadata(vObj).(*ksvcv1.Service)
-	vKsvc := vObj.(*ksvcv1.Service)
-
-	pObj.Spec = *rewriteSpec(&vKsvc.Spec, vKsvc.Namespace)
-
-	return pObj
-}
-
-func rewriteSpec(vObjSpec *ksvcv1.ServiceSpec, namespace string) *ksvcv1.ServiceSpec {
-	vObjSpec = vObjSpec.DeepCopy()
-
-	klog.Info("template name: ", vObjSpec.ConfigurationSpec.Template.Name)
-	if vObjSpec.ConfigurationSpec.Template.Name != "" {
-		vObjSpec.ConfigurationSpec.Template.Name = translate.PhysicalName(vObjSpec.ConfigurationSpec.Template.Name, namespace)
+		klog.Infof("successfully updated physical ksvc %s:%s spec", pKsvc.Namespace, pKsvc.Name)
+		return ctrl.Result{}, nil
 	}
 
-	return vObjSpec
+	updated := k.translateUpdateBackwards(pKsvc, vKsvc)
+	if updated != nil {
+		ctx.Log.Infof("update virtual ksvc %s:%s because spec is out of sync", vKsvc.Namespace, vKsvc.Namespace)
+		return ctrl.Result{}, ctx.VirtualClient.Update(ctx.Context, updated)
+	}
+
+	return ctrl.Result{}, nil
 }
