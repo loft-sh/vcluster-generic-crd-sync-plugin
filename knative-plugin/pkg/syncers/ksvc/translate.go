@@ -26,6 +26,7 @@ func (k *ksvcSyncer) translateUpdate(pObj, vObj *ksvcv1.Service) *ksvcv1.Service
 
 	// check for configuration fields
 	newPKsvc = updateConfigurationSpec(newPKsvc, pObj, vObj)
+	newPKsvc = updateTrafficSpec(newPKsvc, pObj, vObj)
 
 	return newPKsvc
 }
@@ -86,8 +87,27 @@ func updateConfigurationSpec(newPKsvc, pObj, vObj *ksvcv1.Service) *ksvcv1.Servi
 
 		newPKsvc = newIfNil(newPKsvc, pObj)
 
-		klog.Infof("image different for vKsvc %s:%s", vObj.Namespace, vObj.Name)
+		klog.Infof("image different for vKsvc %s:%s, syncing down", vObj.Namespace, vObj.Name)
 		newPKsvc.Spec.ConfigurationSpec.Template.Spec.Containers[0].Image = vObj.Spec.ConfigurationSpec.Template.Spec.Containers[0].Image
+	}
+
+	return newPKsvc
+}
+
+func updateTrafficSpec(newPKsvc, pObj, vObj *ksvcv1.Service) *ksvcv1.Service {
+	if vObj.Spec.RouteSpec.Traffic == nil {
+		// vksvc not set by user, do not sync down
+		// and let controller set defaults to the traffic field
+		return newPKsvc
+	}
+
+	if !equality.Semantic.DeepEqual(
+		vObj.Spec.RouteSpec.Traffic,
+		pObj.Spec.RouteSpec.Traffic) {
+
+		newPKsvc = newIfNil(newPKsvc, pObj)
+		klog.Infof("traffic spec different for vKsvc %s:%s, syncing down", vObj.Namespace, vObj.Name)
+		newPKsvc.Spec.RouteSpec.Traffic = vObj.Spec.RouteSpec.Traffic
 	}
 
 	return newPKsvc
