@@ -1,5 +1,5 @@
 #### Acceptance roadmap for knative serving:
-- [x] Setup e2e testing for knative services
+
 ##### Service:
 Implement following scenarios:
 - [x] `Serving` CRD synced with vcluster
@@ -11,6 +11,7 @@ Implement following scenarios:
 - [x] Update virtual `ksvc` with 50:50 traffic split and sync down
 
 Add e2e tests for the following scenarios
+- [x] Setup e2e testing for knative services
 - [x] `Serving` CRD synced with vcluster
 - [x] Can create `ksvc` in vcluster
 - [x] `ksvc` is synced down to host cluster as expected
