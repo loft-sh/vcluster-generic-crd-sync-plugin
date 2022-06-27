@@ -15,8 +15,8 @@ Add e2e tests for the following scenarios
 - [x] `Serving` CRD synced with vcluster
 - [x] Can create `ksvc` in vcluster
 - [x] `ksvc` is synced down to host cluster as expected
-- [ ] Test `status` subresource UpSync to virtual object
-- [ ] Check if `ksvc` is reachable at the published endpoint
+- [x] Test `status` subresource UpSync to virtual object
+- [x] Check if `ksvc` is reachable at the published endpoint
 - [ ] Test sync down of `spec.traffic.latestRevision`
 - [ ] Verify `spec.traffic` sync down
 - [ ] Test `configuration` `image` sync down creates new `revision`
