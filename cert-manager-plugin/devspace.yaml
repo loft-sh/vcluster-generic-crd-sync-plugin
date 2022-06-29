@@ -17,12 +17,12 @@ deployments:
       chart:
         name: vcluster
         repo: https://charts.loft.sh
-        version: 0.9.0-alpha.0
+        version: 0.10.0
       valuesFiles:
         - plugin.yaml
       values:
         plugin:
-          cert-manager:
+          cert-manager-plugin:
             image: ${PLUGIN_IMAGE}
         serviceCIDR: ${SERVICE_CIDR}
         serviceAccount:

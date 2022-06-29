@@ -37,7 +37,7 @@ spec:
 ```
 
 ```
-vcluster connect my-vcluster -n my-vcluster -- kubectl apply -f issuer.yaml
+kubectl apply -f issuer.yaml
 ```
 
 Now create a certificate or ingress using this issuer:
@@ -58,6 +58,6 @@ spec:
 ```
 
 ```
-vcluster connect my-vcluster -n my-vcluster -- kubectl apply -f certificate.yaml
+kubectl apply -f certificate.yaml
 ```
 
