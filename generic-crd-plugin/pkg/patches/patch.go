@@ -3,30 +3,56 @@ package patches
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
+	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v3"
 )
 
-type Patch []Operation
+type NameResolver interface {
+	VirtualToHostName(name string) (string, error)
+	HostToVirtualName(name string) (string, error)
+}
 
-// Apply returns a YAML document that has been mutated per patch
-func (p Patch) Apply(doc []byte) ([]byte, error) {
-	var node yaml.Node
-	err := yaml.Unmarshal(doc, &node)
-	if err != nil {
-		return nil, fmt.Errorf("failed unmarshaling doc: %s\n\n%s", string(doc), err)
-	}
-
-	for _, op := range p {
-		err = op.Perform(&node)
+func ApplyPatches(obj1, obj2 *yaml.Node, patches []*config.Patch, nameResolver NameResolver) error {
+	for _, p := range patches {
+		err := ApplyPatch(obj1, obj2, p, nameResolver)
 		if err != nil {
-			return nil, err
+			return errors.Wrap(err, "apply patch")
 		}
 	}
 
-	return yaml.Marshal(&node)
+	return nil
 }
 
-func NewNode(raw *interface{}) (*yaml.Node, error) {
+func ApplyPatch(obj1, obj2 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
+	if patch.Type == config.PatchTypeVirtualToHostName {
+		return VirtualToHostName(obj1, patch, resolver)
+	} else if patch.Type == config.PatchTypeHostToVirtualName {
+		return HostToVirtualName(obj1, patch, resolver)
+	} else if patch.Type == config.PatchTypeReplace {
+		return Replace(obj1, patch)
+	} else if patch.Type == config.PatchTypeRemove {
+		return Remove(obj1, patch)
+	} else if patch.Type == config.PatchTypeCopyFromOtherObject {
+		return CopyFromOtherObject(obj1, obj2, patch)
+	} else if patch.Type == config.PatchTypeAdd {
+		return Add(obj1, patch)
+	}
+
+	return fmt.Errorf("patch type is missing or is not recognized (%s)", patch.Type)
+}
+
+func NewNodeFromString(in string) (*yaml.Node, error) {
+	var node yaml.Node
+	err := yaml.Unmarshal([]byte(in), &node)
+	if err != nil {
+		return nil, fmt.Errorf("failed unmarshaling doc: %s\n\n%s", string(in), err)
+	}
+
+	return &node, nil
+}
+
+func NewNode(raw interface{}) (*yaml.Node, error) {
 	doc, err := yaml.Marshal(raw)
 	if err != nil {
 		return nil, fmt.Errorf("failed marshaling struct: %+v\n\n%s", raw, err)

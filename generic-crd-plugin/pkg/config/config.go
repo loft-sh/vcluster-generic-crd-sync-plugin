@@ -21,10 +21,6 @@ type Mapping struct {
 type FromVirtualCluster struct {
 	TypeInformation `json:",inline"`
 
-	// NameMapping defines how objects will be mapped between host and
-	// virtual cluster.
-	NameMapping NameMapping `json:"nameMapping,omitempty"`
-
 	// Selector is the selector to select the objects in the host cluster. If empty
 	// will select all objects.
 	Selector *Selector `json:"selector,omitempty"`
@@ -49,11 +45,11 @@ type FromHostCluster struct {
 }
 
 type TypeInformation struct {
+	// ApiVersion of the object to sync
 	ApiVersion string `json:"apiVersion,omitempty"`
-	Kind       string `json:"kind,omitempty"`
 
-	// ClusterScoped determines if the objects are cluster scoped
-	ClusterScoped bool `json:"clusterScoped,omitempty"`
+	// Kind of the object to sync
+	Kind string `json:"kind,omitempty"`
 }
 
 type NameMapping struct {
@@ -82,6 +78,9 @@ type Patch struct {
 	// Type is the type of the patch
 	Type PatchType `yaml:"type,omitempty" json:"type,omitempty"`
 
+	// FromPath is the path from the other object
+	FromPath string `yaml:"fromPath,omitempty" json:"fromPath,omitempty"`
+
 	// Path is the path of the patch
 	Path string `yaml:"path,omitempty" json:"path,omitempty"`
 
@@ -90,14 +89,18 @@ type Patch struct {
 
 	// Conditions are conditions that must be true for
 	// the patch to get executed
-	Conditions []PatchCondition `yaml:"conditions,omitempty" json:"conditions,omitempty"`
+	Conditions []*PatchCondition `yaml:"conditions,omitempty" json:"conditions,omitempty"`
 }
 
 type PatchType string
 
 const (
-	PatchTypeRewriteNameFromVirtualToHostNamespace = "RewriteFromVirtualToHostNamespace"
-	PatchTypeRewriteNameFromHostToVirtualNamespace = "RewriteFromHostToVirtualNamespace"
+	PatchTypeVirtualToHostName   = "virtualToHostName"
+	PatchTypeHostToVirtualName   = "hostToVirtualName"
+	PatchTypeCopyFromOtherObject = "copyFromOtherObject"
+	PatchTypeAdd                 = "add"
+	PatchTypeReplace             = "replace"
+	PatchTypeRemove              = "remove"
 )
 
 type PatchCondition struct {
@@ -114,5 +117,5 @@ type PatchCondition struct {
 	NotEqual interface{} `yaml:"notEqual,omitempty" json:"notEqual,omitempty"`
 
 	// Empty means that the path value should be empty or unset
-	Empty bool `yaml:"empty,omitempty" json:"empty,omitempty"`
+	Empty *bool `yaml:"empty,omitempty" json:"empty,omitempty"`
 }

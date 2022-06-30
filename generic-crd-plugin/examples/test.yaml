@@ -1,5 +1,52 @@
+hooks:
+  - kind: Ingress
+    apiVersion: networking.k8s.io/v1
+    types:
+      - PhysicalCreate
+      - PhysicalUpdate
+    patches:
+      - type: virtualToHostName
+        path: metadata.annotations[issuer]
 
-        
-  
+hostNameCache:
+  - kind: Ingress
+    apiVersion: networking.k8s.io/v1
+    paths:
+      - path: spec.tls
 
-
+mappings:
+- syncToHostCluster:
+    kind: Issuer
+    apiVersion: cert-manager.io/v1
+    patches: # host cluster -> virtual cluster
+      ignorePaths:
+        - path: ...
+      patches:
+        - type: virtualToHostName
+          path: spec.acme.privateKey.name
+    backwardPatches: # virtual cluster -> host cluster
+      patches:
+      - type: copyFromHostObject
+        fromPath: status
+        path: status
+- syncToVirtualCluster:
+    kind: Issuer
+    apiVersion: cert-manager.io/v1
+    nameMapping:
+      type: hostToVirtualName # (mirror)
+      targetNamespace: ...    # if mirror
+    selector:
+      ownerReference:
+        kind: Ingress
+        apiVersion: networking.k8s.io/v1
+    patches:
+      - type: hostToVirtualName
+        path: spec.acme.privateKey.name
+      - type: copyFromVirtualObject
+        fromPath: status
+        path: status
+    backwardsPatches: # virtual cluster -> host cluster
+      patches:
+        - type: copy
+          fromPath: status
+          path: status

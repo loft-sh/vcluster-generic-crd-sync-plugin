@@ -1,103 +1,13 @@
 package patches
 
 import (
-	"fmt"
-
 	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
 	yaml "gopkg.in/yaml.v3"
 )
 
-// Op is a type alias
-type Op string
-
-// Ops
-const (
-	opAdd     Op = "add"
-	opRemove  Op = "remove"
-	opReplace Op = "replace"
-)
-
-type Operation struct {
-	Op    Op         `yaml:"op,omitempty"`
-	Path  OpPath     `yaml:"path,omitempty"`
-	Value *yaml.Node `yaml:"value,omitempty"`
-}
-
-// Perform executes the operation on the given container
-func (op *Operation) Perform(doc *yaml.Node) error {
-	path, err := yamlpath.NewPath(string(op.Path))
-	if err != nil {
-		return err
-	}
-
-	matches, err := path.Find(doc)
-	if err != nil {
-		return err
-	}
-
-	if len(matches) == 0 {
-		if op.Op == opAdd {
-			matches, err = getParents(doc, op.Path)
-			if err != nil {
-				return fmt.Errorf("could not add using path: %s", op.Path)
-			}
-
-			parentPath := op.Path.getParentPath()
-			propertName := op.Path.getChildName()
-			if op.Value != nil {
-				propertyValue := op.Value.Content[0]
-				op.Value = createMappingNode(propertName, propertyValue)
-			}
-			op.Path = OpPath(parentPath)
-		} else {
-			return fmt.Errorf("%s operation does not apply: doc is missing path: %s", op.Op, op.Path)
-		}
-	}
-
-	for _, match := range matches {
-		parent := Find(doc, ContainsChild(match))
-
-		switch op.Op {
-		case opAdd:
-			op.add(parent, match)
-		case opRemove:
-			op.remove(parent, match)
-		case opReplace:
-			op.replace(parent, match)
-		default:
-			return fmt.Errorf("unexpected op: %s", op.Op)
-		}
-	}
-
-	return nil
-}
-
-func (op *Operation) add(parent *yaml.Node, match *yaml.Node) {
-	switch match.Kind {
-	case yaml.ScalarNode:
-		parent.Content = AddChildAtIndex(parent, match, op.Value)
-	case yaml.MappingNode:
-		if op.Value != nil {
-			match.Content = append(match.Content, op.Value.Content[0].Content...)
-		}
-	case yaml.SequenceNode:
-		match.Content = append(match.Content, op.Value.Content...)
-	case yaml.DocumentNode:
-		match.Content[0].Content = append(match.Content[0].Content, op.Value.Content[0].Content...)
-	}
-}
-
-func (op *Operation) remove(parent *yaml.Node, match *yaml.Node) {
-	switch parent.Kind {
-	case yaml.MappingNode:
-		parent.Content = removeProperty(parent, match)
-	case yaml.SequenceNode:
-		parent.Content = removeChild(parent, match)
-	}
-}
-
-func (op *Operation) replace(parent *yaml.Node, match *yaml.Node) {
-	parent.Content = replaceChildAtIndex(parent, match, op.Value)
+func ReplaceNode(doc *yaml.Node, match *yaml.Node, value *yaml.Node) {
+	parent := Find(doc, ContainsChild(match))
+	parent.Content = replaceChildAtIndex(parent, match, value)
 }
 
 func Find(doc *yaml.Node, predicate func(*yaml.Node) bool) *yaml.Node {
@@ -158,26 +68,6 @@ func AddChildAtIndex(parent *yaml.Node, child *yaml.Node, value *yaml.Node) []*y
 func replaceChildAtIndex(parent *yaml.Node, child *yaml.Node, value *yaml.Node) []*yaml.Node {
 	childIdx := ChildIndex(parent.Content, child)
 	return append(parent.Content[0:childIdx], append(value.Content, parent.Content[childIdx+1:]...)...)
-}
-
-func createMappingNode(property string, value *yaml.Node) *yaml.Node {
-	return &yaml.Node{
-		Kind: yaml.DocumentNode,
-		Content: []*yaml.Node{
-			{
-				Kind: yaml.MappingNode,
-				Tag:  "!!map",
-				Content: []*yaml.Node{
-					{
-						Kind:  yaml.ScalarNode,
-						Value: property,
-						Tag:   "!!str",
-					},
-					value,
-				},
-			},
-		},
-	}
 }
 
 func getParents(doc *yaml.Node, path OpPath) ([]*yaml.Node, error) {

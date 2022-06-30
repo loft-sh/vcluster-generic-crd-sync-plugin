@@ -16,6 +16,7 @@ const (
 )
 
 type NameCache interface {
+	ResolveName(hostName string) string
 	AddToCache(ctx context.Context, mapping *config.Mapping) error
 }
 
@@ -51,6 +52,18 @@ type mapping struct {
 
 func (v virtualObject) String() string {
 	return v.VirtualName + "/" + v.GVK.String()
+}
+
+func (n *nameCache) ResolveName(hostName string) string {
+	n.m.Lock()
+	defer n.m.Unlock()
+
+	slice := n.hostToVirtualNames[hostName]
+	if len(slice) > 0 {
+		return slice[0].VirtualName
+	}
+
+	return ""
 }
 
 func (n *nameCache) AddToCache(ctx context.Context, mapping *config.Mapping) error {
