@@ -1,6 +1,7 @@
 package patches
 
 import (
+	"github.com/pkg/errors"
 	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
 	yaml "gopkg.in/yaml.v3"
 )
@@ -68,6 +69,15 @@ func AddChildAtIndex(parent *yaml.Node, child *yaml.Node, value *yaml.Node) []*y
 func replaceChildAtIndex(parent *yaml.Node, child *yaml.Node, value *yaml.Node) []*yaml.Node {
 	childIdx := ChildIndex(parent.Content, child)
 	return append(parent.Content[0:childIdx], append(value.Content, parent.Content[childIdx+1:]...)...)
+}
+
+func FindMatches(doc *yaml.Node, path string) ([]*yaml.Node, error) {
+	yamlPath, err := yamlpath.NewPath(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "parsing path")
+	}
+
+	return yamlPath.Find(doc)
 }
 
 func getParents(doc *yaml.Node, path OpPath) ([]*yaml.Node, error) {

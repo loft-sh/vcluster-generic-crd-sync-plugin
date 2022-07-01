@@ -4,61 +4,65 @@ const Version = "v1beta1"
 
 type Config struct {
 	// Version is the config version
-	Version string `json:"version,omitempty"`
+	Version string `yaml:"version,omitempty" json:"version,omitempty"`
 
 	// Mappings defines a way to map a resource to another resource
-	Mappings []Mapping `json:"mappings,omitempty"`
+	Mappings []Mapping `yaml:"mappings,omitempty" json:"mappings,omitempty"`
 }
 
 type Mapping struct {
 	// FromHost syncs a resource from the host to the virtual cluster
-	FromHostCluster *FromHostCluster `json:"fromHostCluster,omitempty"`
+	FromHostCluster *FromHostCluster `yaml:"fromHostCluster,omitempty" json:"fromHostCluster,omitempty"`
 
 	// FromVirtualCluster syncs a resource from the virtual cluster to the host
-	FromVirtualCluster *FromVirtualCluster `json:"fromVirtualCluster,omitempty"`
+	FromVirtualCluster *FromVirtualCluster `yaml:"fromVirtualCluster,omitempty" json:"fromVirtualCluster,omitempty"`
 }
 
 type FromVirtualCluster struct {
-	TypeInformation `json:",inline"`
+	TypeInformation `yaml:",inline" json:",inline"`
 
 	// Selector is the selector to select the objects in the host cluster. If empty
 	// will select all objects.
-	Selector *Selector `json:"selector,omitempty"`
+	Selector *Selector `yaml:"selector,omitempty" json:"selector,omitempty"`
 
-	// Patches are the patches to apply on the host cluster objects
-	Patches []Patch `json:"patches,omitempty"`
+	// Patches are the patches to apply on the host cluster objects before
+	// syncing it to the host cluster
+	Patches []*Patch `yaml:"patches,omitempty" json:"patches,omitempty"`
+
+	// ReversePatches are
+	ReversePatches []*Patch `yaml:"reversePatches,omitempty" json:"reversePatches,omitempty"`
 }
 
 type FromHostCluster struct {
-	TypeInformation `json:",inline"`
+	TypeInformation `yaml:",inline" json:",inline"`
 
 	// NameMapping defines how objects will be mapped between host and
 	// virtual cluster.
-	NameMapping NameMapping `json:"nameMapping,omitempty"`
+	NameMapping NameMapping `yaml:"nameMapping,omitempty" json:"nameMapping,omitempty"`
 
 	// Selector is the selector to select the objects in the host cluster. If empty
 	// will select all objects.
-	Selector *Selector `json:"selector,omitempty"`
+	Selector *Selector `yaml:"selector,omitempty" json:"selector,omitempty"`
 
 	// Patches are the patches to apply on the host cluster objects
-	Patches []Patch `json:"patches,omitempty"`
+	Patches []*Patch `yaml:"patches,omitempty" json:"patches,omitempty"`
 }
 
 type TypeInformation struct {
 	// ApiVersion of the object to sync
-	ApiVersion string `json:"apiVersion,omitempty"`
+	ApiVersion string `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
 
 	// Kind of the object to sync
-	Kind string `json:"kind,omitempty"`
+	Kind string `yaml:"kind,omitempty" json:"kind,omitempty"`
 }
 
 type NameMapping struct {
 	// RewriteName defines
-	RewriteName RewriteNameType `json:"rewriteName,omitempty"`
+	RewriteName RewriteNameType `yaml:"rewriteName,omitempty" json:"rewriteName,omitempty"`
 
 	// Namespace allows you to define a namespace the objects should get written to
 	// if policy is RewriteNameTypeKeepName
-	Namespace string
+	Namespace string `yaml:"namespace,omitempty" json:"namespace,omitempty"`
 }
 
 type RewriteNameType string
@@ -71,7 +75,7 @@ const (
 
 type Selector struct {
 	// LabelSelector are the labels to select the object from
-	LabelSelector map[string]string `json:"labelSelector,omitempty"`
+	LabelSelector map[string]string `yaml:"labelSelector,omitempty" json:"labelSelector,omitempty"`
 }
 
 type Patch struct {

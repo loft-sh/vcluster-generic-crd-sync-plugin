@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/pkg/errors"
-	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
 	yaml "gopkg.in/yaml.v3"
 	"strconv"
 )
@@ -14,22 +13,12 @@ func CopyFromOtherObject(obj1, obj2 *yaml.Node, patch *config.Patch) error {
 		return nil
 	}
 
-	path, err := yamlpath.NewPath(patch.Path)
-	if err != nil {
-		return errors.Wrap(err, "parsing path")
-	}
-
-	matches, err := path.Find(obj1)
+	matches, err := FindMatches(obj1, patch.Path)
 	if err != nil {
 		return errors.Wrap(err, "find matches")
 	}
 
-	fromPath, err := yamlpath.NewPath(patch.FromPath)
-	if err != nil {
-		return errors.Wrap(err, "parsing from path")
-	}
-
-	fromMatches, err := fromPath.Find(obj2)
+	fromMatches, err := FindMatches(obj2, patch.FromPath)
 	if err != nil {
 		return errors.Wrap(err, "find from matches")
 	} else if len(fromMatches) > 1 {
@@ -72,12 +61,7 @@ func CopyFromOtherObject(obj1, obj2 *yaml.Node, patch *config.Patch) error {
 }
 
 func Remove(obj1 *yaml.Node, patch *config.Patch) error {
-	path, err := yamlpath.NewPath(patch.Path)
-	if err != nil {
-		return errors.Wrap(err, "parsing path")
-	}
-
-	matches, err := path.Find(obj1)
+	matches, err := FindMatches(obj1, patch.Path)
 	if err != nil {
 		return errors.Wrap(err, "find matches")
 	}
@@ -103,12 +87,7 @@ func Remove(obj1 *yaml.Node, patch *config.Patch) error {
 }
 
 func Add(obj1 *yaml.Node, patch *config.Patch) error {
-	path, err := yamlpath.NewPath(patch.Path)
-	if err != nil {
-		return errors.Wrap(err, "parsing path")
-	}
-
-	matches, err := path.Find(obj1)
+	matches, err := FindMatches(obj1, patch.Path)
 	if err != nil {
 		return errors.Wrap(err, "find matches")
 	}
@@ -147,12 +126,7 @@ func Add(obj1 *yaml.Node, patch *config.Patch) error {
 }
 
 func Replace(obj1 *yaml.Node, patch *config.Patch) error {
-	path, err := yamlpath.NewPath(patch.Path)
-	if err != nil {
-		return errors.Wrap(err, "parsing path")
-	}
-
-	matches, err := path.Find(obj1)
+	matches, err := FindMatches(obj1, patch.Path)
 	if err != nil {
 		return errors.Wrap(err, "find matches")
 	}
@@ -177,12 +151,7 @@ func Replace(obj1 *yaml.Node, patch *config.Patch) error {
 }
 
 func HostToVirtualName(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
-	path, err := yamlpath.NewPath(patch.Path)
-	if err != nil {
-		return errors.Wrap(err, "parsing path")
-	}
-
-	matches, err := path.Find(obj1)
+	matches, err := FindMatches(obj1, patch.Path)
 	if err != nil {
 		return errors.Wrap(err, "find matches")
 	}
@@ -214,12 +183,7 @@ func HostToVirtualName(obj1 *yaml.Node, patch *config.Patch, resolver NameResolv
 }
 
 func VirtualToHostName(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
-	path, err := yamlpath.NewPath(patch.Path)
-	if err != nil {
-		return errors.Wrap(err, "parsing path")
-	}
-
-	matches, err := path.Find(obj1)
+	matches, err := FindMatches(obj1, patch.Path)
 	if err != nil {
 		return errors.Wrap(err, "find matches")
 	}
