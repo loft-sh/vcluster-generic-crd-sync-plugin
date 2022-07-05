@@ -238,6 +238,55 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 		framework.ExpectNoError(err)
 	})
 
+	ginkgo.It("Test if changing configuration image creates new revision", func() {
+		vKsvc, err := vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
+		framework.ExpectNoError(err)
+
+		vKsvc.Spec.Template.Spec.Containers[0].Image = KnativeHelloV2Image
+
+		_, err = vServingClient.Services(ns).Update(f.Context, vKsvc, metav1.UpdateOptions{})
+		framework.ExpectNoError(err)
+
+		err = wait.Poll(time.Millisecond*500, framework.PollTimeout, func() (bool, error) {
+			revisions, err := pServingClient.Revisions(
+				framework.DefaultFramework.VclusterNamespace).
+				List(f.Context, metav1.ListOptions{})
+			if err != nil {
+				klog.Errorf("error getting physical revisions: %v", err)
+				return false, nil
+			}
+
+			if len(revisions.Items) != 2 {
+				klog.Errorf("number of revisions does not match: expected %d, got %d", 2, len(revisions.Items))
+				return false, nil
+			}
+
+			return true, nil
+		})
+
+		framework.ExpectNoError(err)
+
+		// check 2 separate revisions reflected in status
+		err = wait.Poll(time.Millisecond*500, framework.PollTimeout, func() (bool, error) {
+			vKsvc, err := vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+
+			currentRevision := vKsvc.Status.Traffic[0].RevisionName
+			latestRevision := vKsvc.Status.LatestReadyRevisionName
+			if currentRevision == latestRevision {
+				klog.Info("new revision not yet ready")
+				return false, nil
+			}
+
+			klog.Info("new revision created and ready")
+			return true, nil
+		})
+
+		framework.ExpectNoError(err, "expected 2 separate revisions to be ready")
+	})
+
 	// this should always be the last spec
 	ginkgo.It("Destroy namespace", func() {
 		err := f.DeleteTestNamespace(ns, false)
