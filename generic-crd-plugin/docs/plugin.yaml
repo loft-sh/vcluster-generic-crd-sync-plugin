@@ -1,0 +1,369 @@
+# Scope Generic CRD Syncer Plugin:
+
+# Use Case 1: (PoC Phase 1 - Namespaced Objects)
+# 1. CRD present in host cluster
+# 2. CRD definition is created in virtual cluster
+# 3. custom object instances created in the virtual cluster are synced to the host cluster
+
+# Use Case 2: (PoC Phase 2)
+# 1. custom object instances could create other objects (e.g. secrets, pods, other crds)
+# 2. sync those resources back into the virtual cluster
+# Difficulty: rewrite names from host to virtual names
+
+# Use Case 3: (PoC Phase 3)
+# 1. Existing resources inside the host cluster should get synced into the virtual cluster (e.g. ingress classes)
+
+# Implementation Idea
+
+# Provide simple yaml DSL that allows to define resources that should get synced in the scope of the above use cases
+
+# Draft of yaml DSL
+version: v1beta1
+mappings:
+  - fromVirtualCluster:
+      # 1. Plugin would create controller to sync from virtual -> host cluster
+      # 2. Apply CRD definition from host to virtual cluster
+      # 3. Sync namespaced objects from virtual cluster to host cluster and rewrite metadata
+      kind: Certificate
+      apiVersion: cert-manager.io/v1
+
+      selectors:
+        - labelSelector: ... # <- PoC Phase 1
+        - namespaceSelector: ...
+        - ownerReference: ...
+
+      # (Optional) Implicit Name Cache
+      # 1. Select all matched objects in the virtual cluster
+      # 2. Searches the paths below inside these objects
+      # 3. Calculates Virtual -> Host Name and it keeps a cache of form Host -> Virtual name
+      nameCache:
+        - path: metadata.name
+        - path: spec.ca.secretRef
+
+      # 1. Applying reverse patches on virtual object
+      # 2. Applying virtual object to virtual cluster
+      reversePatches:
+        - op: copyFromObject
+          from: status
+          to: status
+        - op: rewriteName         # -> Rewrite secretRef from host to virtual name
+          path: status.secretRef
+        - op: copyFromObject
+          from: spec.ingressClassName
+          to: spec.ingressClassName
+
+      # 1. Generic metadata translation on virtual object
+      # 2. Applying patches on virtual object
+      # 3. Applying rewritten virtual object to host cluster
+      patches:
+        - op: rewriteName
+          path: spec.ca.secretRef # -> Rewrite secretRef from virtual to host name
+
+      # 2 Directions: patches & reversePatches - Patch and StatusPatch
+      # SyncDown (Create Host Object from Virtual Object)
+      # 1. Only patches here -> pretty straight forward
+      # 2. Apply patches on virtual object
+      # 3. Create modified object in host cluster
+
+      # Sync
+      # Direction 1: Host -> Virtual (reversePatches)
+      # 1. Use virtual object and apply reversePatches (and use host object as parameter)
+      # 2. Calculate a diff between original virtual object and modified virtual object (after reversePatches)
+      # 3. If diff is non-empty, we either use client.Status().Patch() or client.Patch() (if the crd has a subresource status)
+
+      # Direction 2: Virtual -> Host (patches)
+      # 1. Use host object and apply patches
+      # 2. Calculate a diff between original host object and modified host object (after patches)
+      # 3. We apply diff on host object (json patch https://jsonpatch.com/)
+      # 4. Calculate a diff between original host object and modified host object (to find out if a change is really needed)
+      # 5. If diff is non-empty, we either use client.Status().Patch() or client.Patch()
+
+      syncBack:
+        # Phase 2 (PoC)
+        # 1. Create certificate my-certificate
+        # 2. Plugin creates my-certificate-x-my-namespace-x-my-cluster inside host cluster
+        # 3. Cert manager controller creates secret my-certificate-x-my-namespace-x-my-cluster inside host cluster
+        # 4. Sync back syncs secret my-certificate-x-my-namespace-x-my-cluster to virtual cluster namespace my-namespace
+        - kind: Secret
+          apiVersion: v1
+          selectors:
+            - name:
+                rewrittenPath: metadata.name
+            - name:
+                rewrittenPath: spec.ca.secretRef
+                # regEx: ^__NAME__\-[a-z0-9]+$ # -> rewritten-adsasd
+                # -> secret with name my-certificate is created inside virtual cluster
+            - ownerReference:
+                apiVersion: apps/v1  # -> Default
+                kind: Deployment     # -> Default
+                # -> secret with name the-controller-chose-my-name is created inside virtual cluster
+            - labelSelector:
+                test: ...
+            - generateName:
+                regEx: ^__NAME__\-$
+                path: metadata.name
+          patches: # Host -> Virtual Cluster
+            - op: rewriteName
+              path: spec.certificateRef # Host name to virtual cluster name
+          reversePatches: # Virtual -> Host Cluster
+            - op: copyFromObject
+              from: status
+              to: status
+
+# 1. Name cache as source for sync back controller
+# 2. For each change in name cache, it would add the host name to the sync back controller queue
+
+# Sync Back Controller:
+# 1. Watching secrets in namespace my-vcluster
+# 2. Reconciling on host names here.
+# 3. Reconcile my-certificate-x-my-namespace-x-my-cluster
+# 4. Dependend on sync back selectors:
+#    a. Name selector: Use namecache object to resolve host name with `metadata.name` -> virtual name, if there is no mapping, stop reconcile
+#    b. Label selector: Check labels of secret
+#    c. Owner references: Check ownerreference of secret
+# my-certificate is created inside vcluster -> part of name cache now -> name cache putting request inside sync back queue -> rereconcile -> sync secret to virtual cluster
+
+# Every object synced by a sync back controller into a virtual cluster will get:
+# - name mapping as annotation
+# - label that identifies it as a sync back object
+# (- all rewrite name resolutions)
+
+
+
+# Example Deletion
+
+# 1. Create certificate in virtual cluster
+# 2. Certificate is synced to host cluster
+# 3. Secret is created from certificate
+# 4. Secret is synced by sync back controller to virtual cluster
+# 5. Cert manager thinks that secret is out of date / not needed anymore or any other reason
+# 6. Cert manager deletes the secret
+# 7. We have a secret in virtual cluster lying around that was synced by sync back controller that has information about which host object it belongs to
+
+# Label secret inside vcluster with vcluster.loft.sh/controlled-by: vcluster
+# Annotation specifies host name vcluster.loft.sh/host-object: my-name
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+mappings:
+  - fromVirtualCluster:
+      kind: Ingress
+      apiGroup: ...
+      patches:
+        - type: rewriteName
+          path: spec.defaultBackend.serviceName
+        - type: rewriteName
+          path: spec.tls[*]
+        - type: rewriteName
+          path: spec.rules[*].service.Name
+      reversePatches:
+        - op: copyFromObject # host object / virtual object
+          from: status
+          path: status
+        - op: rewriteName
+          path: spec.ingressClassName
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Other Definitions
+  - fromVirtualCluster:
+      kind: Ingress
+      apiVersion: networking.k8s.io/v1
+      patches:
+        - type: rewriteName
+          path: spec.defaultBackend.serviceName
+        - type: rewriteName
+          path: spec.defaultBackend.serviceName
+
+  - fromVirtualCluster: # Virtual -> Host Cluster
+      kind: Issuer # my-deployment
+      apiVersion: cert-manager.io/v1
+
+      # Patches add/replace/remove
+      patches:
+        - op: rewriteName
+          path: spec.ca.secretRef1
+        - op: rewriteName
+          path: spec.ca.secretRef2
+        - op: rewriteName
+          path: spec.ca.secretRef3
+        - op: rewriteName
+          path: spec.ca.secretRef4
+        - op: rewriteName
+          path: spec.ca.secretRef5
+
+      reversePatches:
+        - op: copyFromObject # host object / virtual object
+          from: status
+          path: status
+        - op: rewriteName
+          path: status.secretRef
+
+      syncForward:
+        - kind: Secret
+          apiVersion: v1
+          selectors:
+            - name:
+                path: spec.ca.secretRef1
+            - name:
+                path: spec.ca.secretRef2
+            - name:
+                path: spec.ca.secretRef3
+            - name:
+                path: spec.ca.secretRef4
+            - name:
+                path: spec.ca.secretRef5
+
+      # Host -> Virtual Cluster
+      syncBack:
+        - kind: Secret / ConfigMap
+          apiVersion: v1
+          selector:
+            - ownerRefernce: ...
+              name:
+                path: spec.ca.secretRef
+        - kind: ReplicaSet # my-deployment-adsasd
+          apiVersion: apps/v1
+          selectors:
+            - ownerReference:
+                apiVersion: apps/v1  # -> Default
+                kind: Deployment     # -> Default
+                path: metadata.name
+              generateName:
+                fmt: "%s-"
+                regEx: ^__NAME__\-$
+                path: metadata.name
+              name:
+                path: metadata.name
+                transform: ^__NAME__\-[a-z0-9]+$ # -> rewritten-adsasd
+          patches:
+            - op: rewriteName
+              path: spec.certificateRef
+        - kind: Pod  # my-deployment-adsasd-gerret
+          apiVersion: v1
+          nameMapping:
+            transform: ^__NAME__\-[a-z0-9]\-[a-z0-9]+$
+          patches:
+            - type: rewriteName
+              path: spec.certificateRef
+          reversePatches:
+            - op: copy # host object / virtual object
+              fromPath: status
+              path: status
+
+
+
+
+
+
+
+  - fromHostCluster:
+      kind: Secret
+      apiVersion: ...
+      patches:
+        - op: replace
+          path: metadata.namespace
+          value: my-namespace
+      selectors:
+        - labelSelector: ...
+        - ownerReference: ...
+
+# 2 Cases für Host -> Virtual Cluster
+# 1. Sync back
+# 2. Import von Objekten
+
+
+
+
+
+
+# Virtuelles Objekt
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: ca-issuer
+  namespace: mesh-system
+spec:
+  ca:
+    secretName: ca-key-pair
+
+# Host Objekt
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: ca-issuer-test-123-x-mesh-system-test-1adshgdsa
+  namespace: vcluster-namespace
+  labels:
+    ...
+spec:
+  ca:
+    secretName: ca-key-pair-x-mesh-system-x-my-vcluster
+
+
+
+# Mappe Host Objekt -> Virtuelles Objekt
+# Wenn Virtuelles Objekt existiert -> Create Host Objekt
+# Wenn Virtuelles Objekt nicht existiert -> Delete Host Object
+
+fromHostCluster:
+  - kind: Pod
+    apiVersion: v1
+    nameMapping:
+      # Fall 1:
+      type: mirror
+      targetNamespace: default
+      # Fall 2:
+      type: hostToVirtualName
+    patches:
+      - type:
+
+# Mappe Host Objekt -> Virtuelles Objekt
+# Wenn Host Objekt existiert -> Create Virtuelles Objekt
+# Wenn Host Objekt nicht existiert -> Delete Virtuelles Object
