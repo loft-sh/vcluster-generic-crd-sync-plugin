@@ -30,6 +30,9 @@ const (
 
 	KnativeHelloV1Image = "gcr.io/google-samples/hello-app:1.0"
 	KnativeHelloV2Image = "gcr.io/google-samples/hello-app:2.0"
+
+	ServiceVersionV1 = "Version: 1.0.0"
+	ServiceBody      = "Hello, world!"
 )
 
 var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
@@ -41,6 +44,44 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 		vServingClient *servingclient.ServingV1Client
 		pServingClient *servingclient.ServingV1Client
 	)
+
+	matchServiceVersionAndBody := func(url, expectedVersion, expectedBody string) (bool, error) {
+		client := http.Client{
+			Timeout: time.Second * 3,
+		}
+
+		response, httpErr := client.Get(url)
+		if httpErr != nil {
+			klog.Errorf("error during GET request: %v", httpErr)
+			return false, httpErr
+		}
+		defer response.Body.Close()
+
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			klog.Errorf("error reading response body: %v", err)
+			return false, err
+		}
+
+		if body == nil {
+			klog.Info("empty body returned from the service")
+			return false, nil
+		}
+
+		// check version
+		if bodyMessage := bytes.Contains(body, []byte(expectedBody)); !bodyMessage {
+			klog.Errorf("body message does not match, got %v, expected %v", string(body), expectedBody)
+			return false, nil
+		}
+
+		if versionCheck := bytes.Contains(body, []byte(expectedVersion)); !versionCheck {
+			klog.Errorf("response version does not match, got %v, expected %v", string(body), expectedVersion)
+			return false, nil
+		}
+
+		klog.Info("version and body matched as expected")
+		return true, nil
+	}
 
 	ginkgo.It("Initialize namespace and other base resources", func() {
 		f = framework.DefaultFramework
@@ -140,40 +181,11 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 	})
 
 	ginkgo.It("Test if ksvc reachable at the published endpoint", func() {
-		client := http.Client{
-			Timeout: time.Second * 3,
-		}
-
 		vKsvc, err := vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
 		framework.ExpectNoError(err)
 
 		err = wait.PollImmediate(time.Second, framework.PollTimeout, func() (bool, error) {
-			response, httpErr := client.Get(vKsvc.Status.URL.String())
-			if httpErr != nil {
-				klog.Errorf("error during GET request: %v", err)
-				return false, nil
-			}
-			defer response.Body.Close()
-
-			body, err := io.ReadAll(response.Body)
-			if err != nil {
-				klog.Errorf("error reading response body: %v", err)
-				return false, nil
-			}
-
-			// check version
-
-			if bodyMessage := bytes.Contains([]byte("Hello, world!"), body); !bodyMessage {
-				klog.Errorf("body message does not match")
-				return false, nil
-			}
-
-			if versionCheck := bytes.Contains([]byte("Version: 1.0.0"), body); !versionCheck {
-				klog.Errorf("response version does not match")
-				return false, nil
-			}
-
-			return true, nil
+			return matchServiceVersionAndBody(vKsvc.Status.URL.String(), ServiceVersionV1, ServiceBody)
 		})
 
 		framework.ExpectNoError(err)
@@ -185,8 +197,12 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 			var err error
 			vKsvc, err = vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
 			if err != nil {
-				klog.Errorf("unable to get vksvc: %v", err)
-				return false, err
+				if kerrors.IsNotFound(err) {
+					klog.Errorf("unable to get vksvc: %v", err)
+					return false, err
+				}
+
+				return false, nil
 			}
 
 			if len(vKsvc.Status.Traffic) == 0 {
@@ -203,7 +219,15 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 		*vKsvc.Spec.Traffic[0].LatestRevision = false
 		vKsvc.Spec.Traffic[0].RevisionName = vKsvc.Status.Traffic[0].RevisionName
 
-		_, err = vServingClient.Services(ns).Update(f.Context, vKsvc, metav1.UpdateOptions{})
+		err = wait.PollImmediate(time.Millisecond*500, framework.PollTimeout, func() (bool, error) {
+			_, err = vServingClient.Services(ns).Update(f.Context, vKsvc, metav1.UpdateOptions{})
+			if err != nil {
+				return false, nil
+			}
+
+			return true, nil
+		})
+
 		framework.ExpectNoError(err)
 
 		err = wait.PollImmediate(time.Millisecond*500, framework.PollTimeout, func() (bool, error) {
@@ -268,7 +292,7 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 
 		// check 2 separate revisions reflected in status
 		err = wait.Poll(time.Millisecond*500, framework.PollTimeout, func() (bool, error) {
-			vKsvc, err := vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
+			vKsvc, err = vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -285,6 +309,17 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 		})
 
 		framework.ExpectNoError(err, "expected 2 separate revisions to be ready")
+	})
+
+	ginkgo.It("Test if 100% traffic is still served by v1", func() {
+		vKsvc, err := vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
+		framework.ExpectNoError(err)
+
+		for i := 0; i < 10; i++ {
+			ok, reqErr := matchServiceVersionAndBody(vKsvc.Status.URL.String(), ServiceVersionV1, ServiceBody)
+			framework.ExpectNoError(reqErr)
+			framework.ExpectEqual(ok, true)
+		}
 	})
 
 	// this should always be the last spec

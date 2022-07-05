@@ -20,7 +20,7 @@ Add e2e tests for the following scenarios
 - [x] Test sync down of `spec.traffic.latestRevision`
 - [x] Verify `spec.traffic` sync down
 - [x] Test `configuration` `image` sync down creates new `revision`
-- [ ] Check `100%` traffic for `v1.0.0`
+- [x] Check `100%` traffic for `v1.0.0`
 - [ ] Test update virtual `ksvc` with 50:50 traffic split and sync down
 - [ ] Check if traffic split actually works at published endpoint
 ##### Route:
