@@ -17,8 +17,8 @@ Add e2e tests for the following scenarios
 - [x] `ksvc` is synced down to host cluster as expected
 - [x] Test `status` subresource UpSync to virtual object
 - [x] Check if `ksvc` is reachable at the published endpoint
-- [ ] Test sync down of `spec.traffic.latestRevision`
-- [ ] Verify `spec.traffic` sync down
+- [x] Test sync down of `spec.traffic.latestRevision`
+- [x] Verify `spec.traffic` sync down
 - [ ] Test `configuration` `image` sync down creates new `revision`
 - [ ] Check `100%` traffic for `v1.0.0`
 - [ ] Test update virtual `ksvc` with 50:50 traffic split and sync down

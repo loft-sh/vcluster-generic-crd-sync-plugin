@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog"
 
 	ksvcv1 "knative.dev/serving/pkg/apis/serving/v1"
 	servingclient "knative.dev/serving/pkg/client/clientset/versioned/typed/serving/v1"
@@ -149,25 +150,85 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 		err = wait.PollImmediate(time.Second, framework.PollTimeout, func() (bool, error) {
 			response, httpErr := client.Get(vKsvc.Status.URL.String())
 			if httpErr != nil {
+				klog.Errorf("error during GET request: %v", err)
 				return false, nil
 			}
 			defer response.Body.Close()
 
 			body, err := io.ReadAll(response.Body)
 			if err != nil {
+				klog.Errorf("error reading response body: %v", err)
 				return false, nil
-			}
-			if err != nil {
-				return false, err
 			}
 
 			// check version
 
 			if bodyMessage := bytes.Contains([]byte("Hello, world!"), body); !bodyMessage {
+				klog.Errorf("body message does not match")
 				return false, nil
 			}
 
 			if versionCheck := bytes.Contains([]byte("Version: 1.0.0"), body); !versionCheck {
+				klog.Errorf("response version does not match")
+				return false, nil
+			}
+
+			return true, nil
+		})
+
+		framework.ExpectNoError(err)
+	})
+
+	ginkgo.It("Test if ksvc traffic change to latest revision is synced down", func() {
+		var vKsvc *ksvcv1.Service
+		err := wait.PollImmediate(time.Millisecond*500, framework.PollTimeout, func() (bool, error) {
+			var err error
+			vKsvc, err = vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
+			if err != nil {
+				klog.Errorf("unable to get vksvc: %v", err)
+				return false, err
+			}
+
+			if len(vKsvc.Status.Traffic) == 0 {
+				klog.Infof("vksvc traffic status not yet synced up from pksvc")
+				return false, nil
+			}
+
+			return true, nil
+		})
+
+		framework.ExpectNoError(err, "error getting vksvc with a populated traffic status")
+
+		// newLatestRevisionValue := false
+		*vKsvc.Spec.Traffic[0].LatestRevision = false
+		vKsvc.Spec.Traffic[0].RevisionName = vKsvc.Status.Traffic[0].RevisionName
+
+		_, err = vServingClient.Services(ns).Update(f.Context, vKsvc, metav1.UpdateOptions{})
+		framework.ExpectNoError(err)
+
+		err = wait.PollImmediate(time.Millisecond*500, framework.PollTimeout, func() (bool, error) {
+			pKsvc, err := pServingClient.Services(
+				framework.DefaultVclusterNamespace).
+				Get(f.Context,
+					translate.PhysicalName(KnativeServiceName, ns),
+					metav1.GetOptions{})
+			if err != nil {
+				if kerrors.IsNotFound(err) {
+					return false, nil
+				}
+
+				return false, err
+			}
+
+			// make sure physical ksvc's traffic is explicitly set to initial revision
+			// and not latest revision
+			if *pKsvc.Spec.Traffic[0].LatestRevision {
+				return false, nil
+			}
+
+			// make sure physical ksvc's traffic percent is fully directed to
+			// initial version
+			if *pKsvc.Spec.Traffic[0].Percent != 100 {
 				return false, nil
 			}
 
