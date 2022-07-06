@@ -100,10 +100,24 @@ func updateConfigurationSpec(newPKsvc, pObj, vObj *ksvcv1.Service) *ksvcv1.Servi
 		if !equality.Semantic.DeepEqual(
 			vObj.Spec.ConfigurationSpec.Template.Spec.ContainerConcurrency,
 			pObj.Spec.ConfigurationSpec.Template.Spec.ContainerConcurrency) {
+
 			newPKsvc = newIfNil(newPKsvc, pObj)
 
 			klog.Infof("containerConcurrency different for vKsvc %s:%s, syncing down", vObj.Namespace, vObj.Name)
 			newPKsvc.Spec.ConfigurationSpec.Template.Spec.ContainerConcurrency = vObj.Spec.ConfigurationSpec.Template.Spec.ContainerConcurrency
+		}
+	}
+
+	// check diff in timeoutSeconds
+	if vObj.Spec.ConfigurationSpec.Template.Spec.TimeoutSeconds != nil {
+		if !equality.Semantic.DeepEqual(
+			vObj.Spec.ConfigurationSpec.Template.Spec.TimeoutSeconds,
+			pObj.Spec.ConfigurationSpec.Template.Spec.TimeoutSeconds) {
+
+			newPKsvc = newIfNil(newPKsvc, pObj)
+
+			klog.Infof("timeoutSeconds different for vKsvc %s:%s, syncing down", vObj.Namespace, vObj.Name)
+			newPKsvc.Spec.ConfigurationSpec.Template.Spec.TimeoutSeconds = vObj.Spec.ConfigurationSpec.Template.Spec.TimeoutSeconds
 		}
 	}
 

@@ -10,7 +10,7 @@ Implement following scenarios:
 - [x] `configuration.template.` `image` sync down creates new `revision`
 - [x] Update virtual `ksvc` with 50:50 traffic split and sync down
 - [x] `configuration.template.containerConcurrency` sync down
-- [ ] `configuration.template.timeoutSeconds` sync down
+- [x] `configuration.template.timeoutSeconds` sync down
 
 Add e2e tests for the following scenarios
 - [x] Setup e2e testing for knative services

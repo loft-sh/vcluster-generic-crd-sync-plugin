@@ -398,7 +398,15 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 		framework.ExpectNoError(err)
 
 		vKsvc.Spec.Template.Spec.TimeoutSeconds = &UpdatedTimeoutSeconds
-		_, err = vServingClient.Services(ns).Update(f.Context, vKsvc, metav1.UpdateOptions{})
+		err = wait.Poll(time.Millisecond*500, framework.PollTimeout, func() (bool, error) {
+			_, err = vServingClient.Services(ns).Update(f.Context, vKsvc, metav1.UpdateOptions{})
+			if err != nil {
+				return false, nil
+			}
+
+			return true, nil
+		})
+
 		framework.ExpectNoError(err)
 
 		err = wait.Poll(time.Millisecond*500, framework.PollTimeout, func() (bool, error) {
