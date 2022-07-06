@@ -7,8 +7,10 @@ Implement following scenarios:
 - [x] `ksvc` is synced down to host cluster as expected
 - [x] `status` subresource UpSync to virtual object
 - [x] `spec.traffic` sync down
-- [x] `configuration` `image` sync down creates new `revision`
+- [x] `configuration.template.` `image` sync down creates new `revision`
 - [x] Update virtual `ksvc` with 50:50 traffic split and sync down
+- [x] `configuration.template.containerConcurrency` sync down and status sync up
+- [x] `configuration.template.timeoutSeconds` sync down and status sync up
 
 Add e2e tests for the following scenarios
 - [x] Setup e2e testing for knative services
@@ -21,8 +23,10 @@ Add e2e tests for the following scenarios
 - [x] Verify `spec.traffic` sync down
 - [x] Test `configuration` `image` sync down creates new `revision`
 - [x] Check `100%` traffic for `v1.0.0`
-- [ ] Test update virtual `ksvc` with 50:50 traffic split and sync down
+- [x] Test update virtual `ksvc` with 50:50 traffic split and sync down
 - [ ] Check if traffic split actually works at published endpoint
+- [ ] check `containerConcurrency` sync
+- [ ] check `timeoutSeconds` sync
 ##### Route:
 
 ##### Configuration:

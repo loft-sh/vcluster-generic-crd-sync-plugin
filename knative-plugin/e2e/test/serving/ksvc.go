@@ -322,6 +322,49 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 		}
 	})
 
+	ginkgo.It("Test traffic split 50:50 is synced down", func() {
+		vKsvc, err := vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
+		framework.ExpectNoError(err)
+
+		// currentRevision := vKsvc.Status.Traffic[0].RevisionName
+		latestRevision := vKsvc.Status.LatestReadyRevisionName
+
+		// update traffic spec with split
+		*vKsvc.Spec.Traffic[0].Percent = int64(50) // make version 1 as 50
+
+		trafficPercentForLatest := int64(50)
+		trafficTargetV2 := ksvcv1.TrafficTarget{
+			RevisionName: latestRevision,
+			Percent:      &trafficPercentForLatest,
+		}
+
+		// add version 2 with 50%
+		vKsvc.Spec.Traffic = append(vKsvc.Spec.Traffic, trafficTargetV2)
+
+		// apply update
+		_, err = vServingClient.Services(ns).Update(f.Context, vKsvc, metav1.UpdateOptions{})
+		framework.ExpectNoError(err)
+	})
+
+	ginkgo.It("Test if traffic split status is synced up", func() {
+		// check for updated values in virtual object status
+		err := wait.Poll(time.Millisecond*500, framework.PollTimeout, func() (bool, error) {
+			vKsvc, err := vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+
+			if len(vKsvc.Status.Traffic) != 2 {
+				klog.Info("waiting for traffic status to sync back with 2 targets")
+				return false, nil
+			}
+
+			return true, nil
+		})
+
+		framework.ExpectNoError(err)
+	})
+
 	// this should always be the last spec
 	ginkgo.It("Destroy namespace", func() {
 		err := f.DeleteTestNamespace(ns, false)
