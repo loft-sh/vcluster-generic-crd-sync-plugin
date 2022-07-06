@@ -26,7 +26,7 @@ Add e2e tests for the following scenarios
 - [x] Test update virtual `ksvc` with 50:50 traffic split and sync down
 - [ ] Check if traffic split actually works at published endpoint
 - [x] check `containerConcurrency` sync
-- [ ] check `timeoutSeconds` sync
+- [x] check `timeoutSeconds` sync
 ##### Route:
 
 ##### Configuration:

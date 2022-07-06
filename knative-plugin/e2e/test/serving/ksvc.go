@@ -45,6 +45,7 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 		pServingClient *servingclient.ServingV1Client
 
 		UpdatedServingContainerConcurrency = int64(20)
+		UpdatedTimeoutSeconds              = int64(3) // timeout in seconds
 	)
 
 	matchServiceVersionAndBody := func(url, expectedVersion, expectedBody string) (bool, error) {
@@ -366,7 +367,7 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 		framework.ExpectNoError(err)
 	})
 
-	ginkgo.It("Test if container concurrency is synced down and back up in status", func() {
+	ginkgo.It("Test if container concurrency is synced down", func() {
 		vKsvc, err := vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
 		framework.ExpectNoError(err)
 
@@ -383,6 +384,32 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 
 			if *pKsvc.Spec.Template.Spec.ContainerConcurrency != UpdatedServingContainerConcurrency {
 				klog.Infof("waiting for physical ksvc containerConcurrency to sync with virtual ksvc")
+				return false, nil
+			}
+
+			return true, nil
+		})
+
+		framework.ExpectNoError(err)
+	})
+
+	ginkgo.It("Test if TimeoutSeconds is synced down", func() {
+		vKsvc, err := vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
+		framework.ExpectNoError(err)
+
+		vKsvc.Spec.Template.Spec.TimeoutSeconds = &UpdatedTimeoutSeconds
+		_, err = vServingClient.Services(ns).Update(f.Context, vKsvc, metav1.UpdateOptions{})
+		framework.ExpectNoError(err)
+
+		err = wait.Poll(time.Millisecond*500, framework.PollTimeout, func() (bool, error) {
+			pKsvc, err := pServingClient.Services(framework.DefaultVclusterNamespace).
+				Get(f.Context, translate.PhysicalName(KnativeServiceName, ns), metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+
+			if *pKsvc.Spec.Template.Spec.TimeoutSeconds != UpdatedTimeoutSeconds {
+				klog.Infof("waiting for physical ksvc timeoutSeconds to sync with virtual ksvc")
 				return false, nil
 			}
 
