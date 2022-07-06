@@ -9,7 +9,7 @@ Implement following scenarios:
 - [x] `spec.traffic` sync down
 - [x] `configuration.template.` `image` sync down creates new `revision`
 - [x] Update virtual `ksvc` with 50:50 traffic split and sync down
-- [ ] `configuration.template.containerConcurrency` sync down
+- [x] `configuration.template.containerConcurrency` sync down
 - [ ] `configuration.template.timeoutSeconds` sync down
 
 Add e2e tests for the following scenarios

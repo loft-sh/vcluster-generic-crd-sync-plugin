@@ -54,6 +54,10 @@ func (k *ksvcSyncer) translateUpdateBackwards(pObj, vObj *ksvcv1.Service) *ksvcv
 	if !equality.Semantic.DeepEqual(pObj.Spec.Traffic, vObj.Spec.Traffic) {
 		klog.Infof("spec.traffic for vKsvc %s:%s, is out of sync", vObj.Namespace, vObj.Name)
 		updated = newIfNil(updated, vObj)
+
+		// TODO: have more fine grained backwards sync
+		// we should not allow physical object traffic to modify
+		// revision names or traffic percent in virtual object
 		updated.Spec.Traffic = pObj.Spec.Traffic
 	}
 
@@ -89,6 +93,18 @@ func updateConfigurationSpec(newPKsvc, pObj, vObj *ksvcv1.Service) *ksvcv1.Servi
 
 		klog.Infof("image different for vKsvc %s:%s, syncing down", vObj.Namespace, vObj.Name)
 		newPKsvc.Spec.ConfigurationSpec.Template.Spec.Containers[0].Image = vObj.Spec.ConfigurationSpec.Template.Spec.Containers[0].Image
+	}
+
+	// check diff in containerConcurrency
+	if vObj.Spec.ConfigurationSpec.Template.Spec.ContainerConcurrency != nil {
+		if !equality.Semantic.DeepEqual(
+			vObj.Spec.ConfigurationSpec.Template.Spec.ContainerConcurrency,
+			pObj.Spec.ConfigurationSpec.Template.Spec.ContainerConcurrency) {
+			newPKsvc = newIfNil(newPKsvc, pObj)
+
+			klog.Infof("containerConcurrency different for vKsvc %s:%s, syncing down", vObj.Namespace, vObj.Name)
+			newPKsvc.Spec.ConfigurationSpec.Template.Spec.ContainerConcurrency = vObj.Spec.ConfigurationSpec.Template.Spec.ContainerConcurrency
+		}
 	}
 
 	return newPKsvc

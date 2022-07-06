@@ -43,6 +43,8 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 
 		vServingClient *servingclient.ServingV1Client
 		pServingClient *servingclient.ServingV1Client
+
+		UpdatedServingContainerConcurrency = int64(20)
 	)
 
 	matchServiceVersionAndBody := func(url, expectedVersion, expectedBody string) (bool, error) {
@@ -326,7 +328,6 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 		vKsvc, err := vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
 		framework.ExpectNoError(err)
 
-		// currentRevision := vKsvc.Status.Traffic[0].RevisionName
 		latestRevision := vKsvc.Status.LatestReadyRevisionName
 
 		// update traffic spec with split
@@ -369,7 +370,7 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 		vKsvc, err := vServingClient.Services(ns).Get(f.Context, KnativeServiceName, metav1.GetOptions{})
 		framework.ExpectNoError(err)
 
-		*vKsvc.Spec.Template.Spec.ContainerConcurrency = 20
+		vKsvc.Spec.Template.Spec.ContainerConcurrency = &UpdatedServingContainerConcurrency
 		_, err = vServingClient.Services(ns).Update(f.Context, vKsvc, metav1.UpdateOptions{})
 		framework.ExpectNoError(err)
 
@@ -380,7 +381,7 @@ var _ = ginkgo.Describe("Ksvc is synced down and applied as expected", func() {
 				return false, err
 			}
 
-			if *pKsvc.Spec.Template.Spec.ContainerConcurrency != 20 {
+			if *pKsvc.Spec.Template.Spec.ContainerConcurrency != UpdatedServingContainerConcurrency {
 				klog.Infof("waiting for physical ksvc containerConcurrency to sync with virtual ksvc")
 				return false, nil
 			}
