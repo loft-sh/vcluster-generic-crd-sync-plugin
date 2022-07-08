@@ -2,6 +2,7 @@ package syncer
 
 import (
 	"fmt"
+
 	jsonyaml "github.com/ghodss/yaml"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/patches"
@@ -48,6 +49,8 @@ type fromVirtualController struct {
 	selector labels.Selector
 }
 
+// func Resource() client.Object
+
 func (f *fromVirtualController) SyncDown(ctx *synccontext.SyncContext, vObj client.Object) (ctrl.Result, error) {
 	// check if selector matches
 	if !f.objectMatches(vObj) {
@@ -56,6 +59,11 @@ func (f *fromVirtualController) SyncDown(ctx *synccontext.SyncContext, vObj clie
 
 	// new obj
 	newObj := f.TranslateMetadata(vObj)
+
+	err := f.applyPatches(vObj, newObj)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to apply declared patches to %s %s/%s: %v", f.config.Kind, newObj.GetNamespace(), newObj.GetName(), err)
+	}
 
 	ctx.Log.Infof("create physical %s %s/%s", f.config.Kind, newObj.GetNamespace(), newObj.GetName())
 	err = ctx.PhysicalClient.Create(ctx.Context, newObj)
@@ -84,11 +92,11 @@ func (f *fromVirtualController) Sync(ctx *synccontext.SyncContext, pObj client.O
 }
 
 func (f *fromVirtualController) objectMatches(obj client.Object) bool {
-	return f.selector != nil && !f.selector.Matches(labels.Set(obj.GetLabels()))
+	return f.selector == nil || !f.selector.Matches(labels.Set(obj.GetLabels()))
 }
 
 func (f *fromVirtualController) applyPatches(vObj, pObj client.Object) error {
-	yamlNode, err := patches.NewJSONNode(vObj)
+	yamlNode, err := patches.NewJSONNode(pObj)
 	if err != nil {
 		return errors.Wrap(err, "new json yaml node")
 	}
@@ -101,7 +109,7 @@ func (f *fromVirtualController) applyPatches(vObj, pObj client.Object) error {
 		}
 	}
 
-	err = patches.ApplyPatches(yamlNode, otherYamlNode, f.config.Patches, &nameCacheResolver{namespace: vObj.GetNamespace()})
+	err = patches.ApplyPatches(yamlNode, otherYamlNode, f.config.Patches, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
 	if err != nil {
 		return errors.Wrap(err, "error applying patches")
 	}
@@ -111,21 +119,18 @@ func (f *fromVirtualController) applyPatches(vObj, pObj client.Object) error {
 		return errors.Wrap(err, "marshal yaml")
 	}
 
-	err = jsonyaml.Unmarshal(objYaml)
+	err = jsonyaml.Unmarshal(objYaml, pObj)
 	if err != nil {
 		return errors.Wrap(err, "convert object")
 	}
 
+	return nil
 }
 
-type nameCacheResolver struct {
+type virtualToHostNameResolver struct {
 	namespace string
 }
 
-func (n *nameCacheResolver) VirtualToHostName(name string) (string, error) {
+func (n *virtualToHostNameResolver) TranslateName(name string) (string, error) {
 	return translate.PhysicalName(name, n.namespace), nil
-}
-
-func (n *nameCacheResolver) HostToVirtualName(name string) (string, error) {
-	return "", fmt.Errorf("you cannot convert an host name to virtual name if you are syncing from virtual to host cluster")
 }

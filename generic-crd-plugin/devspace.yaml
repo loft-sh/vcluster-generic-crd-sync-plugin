@@ -1,11 +1,7 @@
 version: v1beta11
 vars:
   - name: PLUGIN_IMAGE
-    value: ghcr.io/loft-sh/vcluster-plugins/cert-manager-plugin
-  - name: K3S_IMAGE
-    value: rancher/k3s:v1.23.5-k3s1
-  - name: SERVICE_CIDR
-    command: vcluster get service-cidr
+    value: ghcr.io/loft-sh/vcluster-plugins/generic-crd-plugin
 images:
   vcluster:
     image: ${PLUGIN_IMAGE}
@@ -17,24 +13,12 @@ deployments:
       chart:
         name: vcluster
         repo: https://charts.loft.sh
-        version: 0.9.0-alpha.0
       valuesFiles:
         - plugin.yaml
       values:
         plugin:
-          cert-manager:
+          generic-crd-plugin:
             image: ${PLUGIN_IMAGE}
-        serviceCIDR: ${SERVICE_CIDR}
-        serviceAccount:
-          create: false
-          name: default
-        vcluster:
-          image: ${K3S_IMAGE}
-        rbac:
-          clusterRole:
-            create: true
-          role:
-            extended: true
         syncer:
           readinessProbe:
             enabled: false

@@ -3,14 +3,14 @@ package patches
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v3"
 )
 
 type NameResolver interface {
-	VirtualToHostName(name string) (string, error)
-	HostToVirtualName(name string) (string, error)
+	TranslateName(name string) (string, error)
 }
 
 func ApplyPatches(obj1, obj2 *yaml.Node, patches []*config.Patch, nameResolver NameResolver) error {
@@ -25,10 +25,8 @@ func ApplyPatches(obj1, obj2 *yaml.Node, patches []*config.Patch, nameResolver N
 }
 
 func ApplyPatch(obj1, obj2 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
-	if patch.Type == config.PatchTypeVirtualToHostName {
-		return VirtualToHostName(obj1, patch, resolver)
-	} else if patch.Type == config.PatchTypeHostToVirtualName {
-		return HostToVirtualName(obj1, patch, resolver)
+	if patch.Type == config.PatchTypeRewriteName {
+		return RewriteName(obj1, patch, resolver)
 	} else if patch.Type == config.PatchTypeReplace {
 		return Replace(obj1, patch)
 	} else if patch.Type == config.PatchTypeRemove {

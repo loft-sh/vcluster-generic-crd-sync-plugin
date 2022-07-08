@@ -2,10 +2,11 @@ package patches
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v3"
-	"strconv"
 )
 
 func CopyFromOtherObject(obj1, obj2 *yaml.Node, patch *config.Patch) error {
@@ -150,7 +151,7 @@ func Replace(obj1 *yaml.Node, patch *config.Patch) error {
 	return nil
 }
 
-func HostToVirtualName(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
+func RewriteName(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
 	matches, err := FindMatches(obj1, patch.Path)
 	if err != nil {
 		return errors.Wrap(err, "find matches")
@@ -165,39 +166,7 @@ func HostToVirtualName(obj1 *yaml.Node, patch *config.Patch, resolver NameResolv
 				continue
 			}
 
-			translatedName, err := resolver.HostToVirtualName(m.Value)
-			if err != nil {
-				return errors.Wrapf(err, "virtual to host %s", m.Value)
-			}
-
-			newNode, err := NewNode(translatedName)
-			if err != nil {
-				return errors.Wrap(err, "create node")
-			}
-
-			ReplaceNode(obj1, m, newNode)
-		}
-	}
-
-	return nil
-}
-
-func VirtualToHostName(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
-	matches, err := FindMatches(obj1, patch.Path)
-	if err != nil {
-		return errors.Wrap(err, "find matches")
-	}
-
-	for _, m := range matches {
-		if m.Kind == yaml.ScalarNode {
-			validated, err := ValidateAllConditions(obj1, m, patch.Conditions)
-			if err != nil {
-				return errors.Wrap(err, "validate conditions")
-			} else if !validated {
-				continue
-			}
-
-			translatedName, err := resolver.VirtualToHostName(m.Value)
+			translatedName, err := resolver.TranslateName(m.Value)
 			if err != nil {
 				return errors.Wrapf(err, "virtual to host %s", m.Value)
 			}
