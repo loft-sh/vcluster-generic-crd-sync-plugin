@@ -13,6 +13,9 @@
 # Use Case 3: (PoC Phase 3)
 # 1. Existing resources inside the host cluster should get synced into the virtual cluster (e.g. ingress classes)
 
+# Warning about conflict with the vcluster syncers that are enabled.
+# ^ Poc Phase 4, but can be implemented in parallel.
+
 # Implementation Idea
 
 # Provide simple yaml DSL that allows to define resources that should get synced in the scope of the above use cases
@@ -32,13 +35,13 @@ mappings:
         - namespaceSelector: ...
         - ownerReference: ...
 
-      # (Optional) Implicit Name Cache
+      # (Optional) Explicit Name Cache
       # 1. Select all matched objects in the virtual cluster
       # 2. Searches the paths below inside these objects
       # 3. Calculates Virtual -> Host Name and it keeps a cache of form Host -> Virtual name
       nameCache:
-        - path: metadata.name
-        - path: spec.ca.secretRef
+        # - path: metadata.name # implicit
+        - path: spec.secretName
 
       # 1. Applying reverse patches on virtual object
       # 2. Applying virtual object to virtual cluster
@@ -57,7 +60,7 @@ mappings:
       # 3. Applying rewritten virtual object to host cluster
       patches:
         - op: rewriteName
-          path: spec.ca.secretRef # -> Rewrite secretRef from virtual to host name
+          path: spec.issuerRef.secretRef # -> Rewrite secretRef from virtual to host name
 
       # 2 Directions: patches & reversePatches - Patch and StatusPatch
       # SyncDown (Create Host Object from Virtual Object)
