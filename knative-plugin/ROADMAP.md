@@ -30,9 +30,9 @@ Add e2e tests for the following scenarios
 
 ##### Configuration:
 Implement following scenarios:
-- [ ] SyncUp of `Configuration` objects as a result of physical ksvc CRs
-- [ ] Update status of `Configuration` objects as and when new `revisions` are created etc.
-- [ ] Delete `Configuration` objects when physical objects don't exist anymore
+- [x] SyncUp of `Configuration` objects as a result of physical ksvc CRs
+- [x] Update status of `Configuration` objects as and when new `revisions` are created etc.
+- [x] Delete `Configuration` objects when physical objects don't exist anymore
 - [ ] Implement proper reverse name translation of `Configuration` objects to match with the correct virtual `ksvc` objects
 - [ ] Link Virtual `Configurations` with the correct owner references to the virtual `ksvc` objects
 
