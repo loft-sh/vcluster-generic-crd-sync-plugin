@@ -27,6 +27,15 @@ Add e2e tests for the following scenarios
 - [ ] Check if traffic split actually works at published endpoint
 - [x] check `containerConcurrency` sync
 - [x] check `timeoutSeconds` sync
-##### Route:
 
 ##### Configuration:
+Implement following scenarios:
+- [ ] SyncUp of `Configuration` objects as a result of physical ksvc CRs
+- [ ] Update status of `Configuration` objects as and when new `revisions` are created etc.
+- [ ] Delete `Configuration` objects when physical objects don't exist anymore
+- [ ] Implement proper reverse name translation of `Configuration` objects to match with the correct virtual `ksvc` objects
+- [ ] Link Virtual `Configurations` with the correct owner references to the virtual `ksvc` objects
+
+##### Revisions:
+
+##### Route:
