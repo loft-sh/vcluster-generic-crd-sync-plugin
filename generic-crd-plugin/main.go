@@ -39,6 +39,13 @@ func main() {
 							Path: ".spec.issuerRef.name",
 						},
 					},
+					ReversePatches: []*config.Patch{
+						{
+							Type:     config.PatchTypeCopyFromOtherObject,
+							FromPath: "status",
+							Path:     "status",
+						},
+					},
 				},
 			},
 		},
