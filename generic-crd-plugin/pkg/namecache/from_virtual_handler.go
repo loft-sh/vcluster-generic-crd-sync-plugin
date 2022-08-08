@@ -56,16 +56,17 @@ func (c *fromVirtualClusterCacheHandler) OnDelete(obj interface{}) {
 }
 
 func (c *fromVirtualClusterCacheHandler) mappingsFromVirtualObject(obj *unstructured.Unstructured, mappingConfig *config.FromVirtualCluster) ([]mapping, error) {
-	mappings := []mapping{}
-	if mappingConfig.NameMapping.RewriteName == config.RewriteNameTypeFromVirtualToHostNamespace {
-		mappings = append(mappings, mapping{
+	mappings := []mapping{
+		{
 			VirtualName: obj.GetNamespace() + "/" + obj.GetName(),
 			HostName:    translate.PhysicalName(obj.GetName(), obj.GetNamespace()),
-		})
+		},
 	}
 
+	// TODO add explicit name caches?
+
 	for _, p := range mappingConfig.Patches {
-		if p.Type != config.PatchTypeRewriteNameFromVirtualToHostNamespace {
+		if p.Type != config.PatchTypeRewriteName && p.Type != config.PatchTypeRewriteNamespace {
 			continue
 		}
 

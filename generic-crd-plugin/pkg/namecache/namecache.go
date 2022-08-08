@@ -2,13 +2,15 @@ package namecache
 
 import (
 	"context"
+	"fmt"
+	"sync"
+
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sync"
 )
 
 const (
@@ -17,15 +19,79 @@ const (
 
 type NameCache interface {
 	ResolveName(hostName string) string
-	AddToCache(ctx context.Context, mapping *config.Mapping) error
 }
 
-func NewNameCache(manager ctrl.Manager) NameCache {
-	return &nameCache{
+func NewNameCache(ctx context.Context, manager ctrl.Manager, mapping *config.Mapping) (NameCache, error) {
+	nc := &nameCache{
 		manager:            manager,
 		hostToVirtualNames: map[string][]*virtualObject{},
 		virtualObjects:     map[string]*virtualObject{},
 	}
+
+	if mapping.FromVirtualCluster != nil {
+		found := false
+
+		// check if there is at least 1 reverse patch that would use the cache
+		for _, p := range mapping.FromVirtualCluster.ReversePatches {
+			if p.Type == config.PatchTypeRewriteName || p.Type == config.PatchTypeRewriteNamespace {
+				found = true
+				break
+			}
+		}
+		// TODO: add checks of syncBack - Phase 2
+		if !found {
+			return nc, nil
+		}
+
+		// add informer to cache
+		gvk := schema.FromAPIVersionAndKind(mapping.FromVirtualCluster.ApiVersion, mapping.FromVirtualCluster.Kind)
+		obj := &unstructured.Unstructured{}
+		obj.SetAPIVersion(mapping.FromVirtualCluster.ApiVersion)
+		obj.SetKind(mapping.FromVirtualCluster.Kind)
+		informer, err := nc.manager.GetCache().GetInformer(ctx, obj)
+		if err != nil {
+			return nil, fmt.Errorf("get informer for %v: %v", gvk, err)
+		}
+
+		informer.AddEventHandler(&fromVirtualClusterCacheHandler{
+			gvk:       gvk,
+			mapping:   mapping.FromVirtualCluster,
+			nameCache: nc,
+		})
+	} else if mapping.FromHostCluster != nil {
+		// check if there is at least 1 mapping
+		if mapping.FromHostCluster.NameMapping.RewriteName != config.RewriteNameTypeFromHostToVirtualNamespace {
+			// check if there is a patch that rewrites a name
+			found := false
+			for _, p := range mapping.FromVirtualCluster.Patches {
+				if p.Type == config.RewriteNameTypeFromHostToVirtualNamespace {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return nc, nil
+			}
+		}
+
+		// add informer to cache
+		gvk := schema.FromAPIVersionAndKind(mapping.FromHostCluster.ApiVersion, mapping.FromHostCluster.Kind)
+		obj := &unstructured.Unstructured{}
+		obj.SetAPIVersion(mapping.FromHostCluster.ApiVersion)
+		obj.SetKind(mapping.FromHostCluster.Kind)
+		informer, err := nc.manager.GetCache().GetInformer(ctx, obj)
+		if err != nil {
+			return nil, errors.Wrapf(err, "get informer for %v", gvk)
+		}
+
+		informer.AddEventHandler(&fromHostClusterCacheHandler{
+			gvk:       gvk,
+			mapping:   mapping.FromVirtualCluster,
+			nameCache: nc,
+		})
+	}
+
+	return nc, nil
 }
 
 type nameCache struct {
@@ -60,78 +126,14 @@ func (n *nameCache) ResolveName(hostName string) string {
 
 	slice := n.hostToVirtualNames[hostName]
 	if len(slice) > 0 {
-		return slice[0].VirtualName
+		for _, m := range slice[0].Mappings {
+			if m.HostName == hostName {
+				return m.VirtualName
+			}
+		}
 	}
 
 	return ""
-}
-
-func (n *nameCache) AddToCache(ctx context.Context, mapping *config.Mapping) error {
-	if mapping.FromVirtualCluster != nil {
-		// check if there is at least 1 mapping
-		if mapping.FromVirtualCluster.NameMapping.RewriteName != config.RewriteNameTypeFromVirtualToHostNamespace {
-			// check if there is a patch that rewrites a name
-			found := false
-			for _, p := range mapping.FromVirtualCluster.Patches {
-				if p.Type == config.PatchTypeRewriteNameFromVirtualToHostNamespace {
-					found = true
-					break
-				}
-			}
-			if !found {
-				return nil
-			}
-		}
-
-		// add informer to cache
-		gvk := schema.FromAPIVersionAndKind(mapping.FromVirtualCluster.ApiVersion, mapping.FromVirtualCluster.Kind)
-		obj := &unstructured.Unstructured{}
-		obj.SetAPIVersion(mapping.FromVirtualCluster.ApiVersion)
-		obj.SetKind(mapping.FromVirtualCluster.Kind)
-		informer, err := n.manager.GetCache().GetInformer(ctx, obj)
-		if err != nil {
-			return errors.Wrapf(err, "get informer for %v", gvk)
-		}
-
-		informer.AddEventHandler(&fromVirtualClusterCacheHandler{
-			gvk:       gvk,
-			mapping:   mapping.FromVirtualCluster,
-			nameCache: n,
-		})
-	} else if mapping.FromHostCluster != nil {
-		// check if there is at least 1 mapping
-		if mapping.FromHostCluster.NameMapping.RewriteName != config.RewriteNameTypeFromHostToVirtualNamespace {
-			// check if there is a patch that rewrites a name
-			found := false
-			for _, p := range mapping.FromVirtualCluster.Patches {
-				if p.Type == config.RewriteNameTypeFromHostToVirtualNamespace {
-					found = true
-					break
-				}
-			}
-			if !found {
-				return nil
-			}
-		}
-
-		// add informer to cache
-		gvk := schema.FromAPIVersionAndKind(mapping.FromHostCluster.ApiVersion, mapping.FromHostCluster.Kind)
-		obj := &unstructured.Unstructured{}
-		obj.SetAPIVersion(mapping.FromHostCluster.ApiVersion)
-		obj.SetKind(mapping.FromHostCluster.Kind)
-		informer, err := n.manager.GetCache().GetInformer(ctx, obj)
-		if err != nil {
-			return errors.Wrapf(err, "get informer for %v", gvk)
-		}
-
-		informer.AddEventHandler(&fromHostClusterCacheHandler{
-			gvk:       gvk,
-			mapping:   mapping.FromVirtualCluster,
-			nameCache: n,
-		})
-	}
-
-	return nil
 }
 
 func (n *nameCache) RemoveMapping(object *virtualObject) {

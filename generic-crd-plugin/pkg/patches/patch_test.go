@@ -1,11 +1,12 @@
 package patches
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	yaml "gopkg.in/yaml.v3"
 	"gotest.tools/assert"
-	"strings"
-	"testing"
 )
 
 type patchTestCase struct {
@@ -19,6 +20,8 @@ type patchTestCase struct {
 	expected     string
 }
 
+// TODO update tests
+
 func TestPatch(t *testing.T) {
 	True := true
 
@@ -26,7 +29,7 @@ func TestPatch(t *testing.T) {
 		{
 			name: "copy merge",
 			patch: &config.Patch{
-				Type:     config.PatchTypeCopyFromOtherObject,
+				Type:     config.PatchTypeCopyFromObject,
 				FromPath: "status.test",
 				Path:     "test",
 			},
@@ -41,7 +44,7 @@ test: test`,
 		{
 			name: "copy",
 			patch: &config.Patch{
-				Type:     config.PatchTypeCopyFromOtherObject,
+				Type:     config.PatchTypeCopyFromObject,
 				FromPath: "status",
 				Path:     "status",
 			},

@@ -27,12 +27,14 @@ func ApplyPatches(obj1, obj2 *yaml.Node, patches []*config.Patch, nameResolver N
 func ApplyPatch(obj1, obj2 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
 	if patch.Type == config.PatchTypeRewriteName {
 		return RewriteName(obj1, patch, resolver)
+	} else if patch.Type == config.PatchTypeRewriteNamespace {
+		return RewriteNamespace(obj1, patch, resolver)
 	} else if patch.Type == config.PatchTypeReplace {
 		return Replace(obj1, patch)
 	} else if patch.Type == config.PatchTypeRemove {
 		return Remove(obj1, patch)
-	} else if patch.Type == config.PatchTypeCopyFromOtherObject {
-		return CopyFromOtherObject(obj1, obj2, patch)
+	} else if patch.Type == config.PatchTypeCopyFromObject {
+		return CopyFromObject(obj1, obj2, patch)
 	} else if patch.Type == config.PatchTypeAdd {
 		return Add(obj1, patch)
 	}

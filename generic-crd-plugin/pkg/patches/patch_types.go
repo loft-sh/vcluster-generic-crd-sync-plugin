@@ -9,7 +9,7 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-func CopyFromOtherObject(obj1, obj2 *yaml.Node, patch *config.Patch) error {
+func CopyFromObject(obj1, obj2 *yaml.Node, patch *config.Patch) error {
 	if obj2 == nil {
 		return nil
 	}
@@ -19,11 +19,15 @@ func CopyFromOtherObject(obj1, obj2 *yaml.Node, patch *config.Patch) error {
 		return errors.Wrap(err, "find matches")
 	}
 
-	fromMatches, err := FindMatches(obj2, patch.FromPath)
+	fromPath := patch.FromPath
+	if fromPath == "" {
+		fromPath = patch.Path
+	}
+	fromMatches, err := FindMatches(obj2, fromPath)
 	if err != nil {
 		return errors.Wrap(err, "find from matches")
 	} else if len(fromMatches) > 1 {
-		return fmt.Errorf("more than 1 match found for path %s", patch.FromPath)
+		return fmt.Errorf("more than 1 match found for path %s", fromPath)
 	}
 
 	if len(fromMatches) == 1 && len(matches) == 0 {
@@ -179,6 +183,12 @@ func RewriteName(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) er
 			ReplaceNode(obj1, m, newNode)
 		}
 	}
+
+	return nil
+}
+
+func RewriteNamespace(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
+	//TODO: implement
 
 	return nil
 }

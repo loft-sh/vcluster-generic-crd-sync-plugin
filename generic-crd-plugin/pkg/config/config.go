@@ -99,11 +99,12 @@ type Patch struct {
 type PatchType string
 
 const (
-	PatchTypeRewriteName         = "rewriteName"
-	PatchTypeCopyFromOtherObject = "copyFromOtherObject"
-	PatchTypeAdd                 = "add"
-	PatchTypeReplace             = "replace"
-	PatchTypeRemove              = "remove"
+	PatchTypeRewriteName      = "rewriteName"
+	PatchTypeRewriteNamespace = "rewriteNamespace"
+	PatchTypeCopyFromObject   = "copyFromObject"
+	PatchTypeAdd              = "add"
+	PatchTypeReplace          = "replace"
+	PatchTypeRemove           = "remove"
 )
 
 type PatchCondition struct {

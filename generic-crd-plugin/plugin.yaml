@@ -7,11 +7,17 @@ plugin:
     rbac:
       role:
         extraRules:
-          - apiGroups: ["cert-manager.io"]
-            resources: ["issuers", "certificates"]
-            verbs: ["create", "delete", "patch", "update", "get", "list", "watch"]
+          # Example:
+          # - apiGroups: ["cert-manager.io"]
+          #   resources: ["issuers", "certificates", "certificaterequests"]
+          #   verbs: ["create", "delete", "patch", "update", "get", "list", "watch"]
       clusterRole:
         extraRules:
           - apiGroups: ["apiextensions.k8s.io"]
             resources: ["customresourcedefinitions"]
             verbs: ["get", "list", "watch"]
+    env:
+      - name: CONFIG
+        value: |-
+          version: v1beta1
+          mappings: []
