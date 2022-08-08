@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  generateName: dummy-
+  namespace: default
+  labels:
+    test: first
+spec:
+  dnsNames:
+  - example.com
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: selfsigned-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab
+  secretName: sname

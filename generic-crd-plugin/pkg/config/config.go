@@ -21,8 +21,8 @@ type Mapping struct {
 type FromVirtualCluster struct {
 	TypeInformation `yaml:",inline" json:",inline"`
 
-	// Selector is the selector to select the objects in the host cluster. If empty
-	// will select all objects.
+	// Selector is the selector to select the objects in the host cluster.
+	// If empty will select all objects.
 	Selector *Selector `yaml:"selector,omitempty" json:"selector,omitempty"`
 
 	// Patches are the patches to apply on the host cluster objects before
@@ -40,8 +40,8 @@ type FromHostCluster struct {
 	// virtual cluster.
 	NameMapping NameMapping `yaml:"nameMapping,omitempty" json:"nameMapping,omitempty"`
 
-	// Selector is the selector to select the objects in the host cluster. If empty
-	// will select all objects.
+	// Selector is the selector to select the objects in the host cluster.
+	// If empty will select all objects.
 	Selector *Selector `yaml:"selector,omitempty" json:"selector,omitempty"`
 
 	// Patches are the patches to apply on the host cluster objects
@@ -99,12 +99,12 @@ type Patch struct {
 type PatchType string
 
 const (
-	PatchTypeVirtualToHostName   = "virtualToHostName"
-	PatchTypeHostToVirtualName   = "hostToVirtualName"
-	PatchTypeCopyFromOtherObject = "copyFromOtherObject"
-	PatchTypeAdd                 = "add"
-	PatchTypeReplace             = "replace"
-	PatchTypeRemove              = "remove"
+	PatchTypeRewriteName      = "rewriteName"
+	PatchTypeRewriteNamespace = "rewriteNamespace"
+	PatchTypeCopyFromObject   = "copyFromObject"
+	PatchTypeAdd              = "add"
+	PatchTypeReplace          = "replace"
+	PatchTypeRemove           = "remove"
 )
 
 type PatchCondition struct {

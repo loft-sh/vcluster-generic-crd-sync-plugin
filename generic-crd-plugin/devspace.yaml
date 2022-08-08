@@ -1,11 +1,7 @@
 version: v1beta11
 vars:
   - name: PLUGIN_IMAGE
-    value: ghcr.io/loft-sh/vcluster-plugins/cert-manager-plugin
-  - name: K3S_IMAGE
-    value: rancher/k3s:v1.23.5-k3s1
-  - name: SERVICE_CIDR
-    command: vcluster get service-cidr
+    value: ghcr.io/loft-sh/vcluster-plugins/generic-crd-plugin
 images:
   vcluster:
     image: ${PLUGIN_IMAGE}
@@ -17,29 +13,54 @@ deployments:
       chart:
         name: vcluster
         repo: https://charts.loft.sh
-        version: 0.9.0-alpha.0
       valuesFiles:
         - plugin.yaml
       values:
+        sync:
+          nodes:
+            enabled: true
+            syncAllNodes: true
+            enableScheduler: true
         plugin:
-          cert-manager:
+          generic-crd-plugin:
             image: ${PLUGIN_IMAGE}
-        serviceCIDR: ${SERVICE_CIDR}
-        serviceAccount:
-          create: false
-          name: default
-        vcluster:
-          image: ${K3S_IMAGE}
-        rbac:
-          clusterRole:
-            create: true
-          role:
-            extended: true
+            rbac:
+              role:
+                extraRules:
+                  # Config for testing
+                  - apiGroups: ["cert-manager.io"]
+                    resources: ["issuers", "certificates", "certificaterequests"]
+                    verbs: ["create", "delete", "patch", "update", "get", "list", "watch"]
+            env:
+              # Config for testing
+              # run `make install-cert-manager` within the host kube context before using
+              - name: CONFIG
+                value: |-
+                  version: v1beta1
+                  mappings:
+                    - fromVirtualCluster:
+                        apiVersion: cert-manager.io/v1
+                        kind: Certificate
+                        patches:
+                          - type: rewriteName
+                            path: spec.issuerRef.name
+                        reversePatches:
+                          - type: copyFromObject
+                            fromPath: status
+                            path: status
+                          - type: copyFromObject
+                            fromPath: spec.issuerRef.name
+                            path: metadata.annotations['test.loft.sh/issuerRefName']
+                          - type: rewriteName
+                            path: metadata.annotations['test.loft.sh/issuerRefName']
         syncer:
           readinessProbe:
             enabled: false
           livenessProbe:
             enabled: false
+        vcluster:
+          extraArgs:
+            - "--kube-apiserver-arg='v=6'"
 dev:
   terminal:
     imageSelector: ${PLUGIN_IMAGE}

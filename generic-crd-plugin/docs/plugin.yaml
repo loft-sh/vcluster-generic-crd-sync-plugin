@@ -13,6 +13,9 @@
 # Use Case 3: (PoC Phase 3)
 # 1. Existing resources inside the host cluster should get synced into the virtual cluster (e.g. ingress classes)
 
+# Warning about conflict with the vcluster syncers that are enabled.
+# ^ Poc Phase 4, but can be implemented in parallel.
+
 # Implementation Idea
 
 # Provide simple yaml DSL that allows to define resources that should get synced in the scope of the above use cases
@@ -32,13 +35,13 @@ mappings:
         - namespaceSelector: ...
         - ownerReference: ...
 
-      # (Optional) Implicit Name Cache
+      # (Optional) Explicit Name Cache
       # 1. Select all matched objects in the virtual cluster
       # 2. Searches the paths below inside these objects
       # 3. Calculates Virtual -> Host Name and it keeps a cache of form Host -> Virtual name
       nameCache:
-        - path: metadata.name
-        - path: spec.ca.secretRef
+        # - path: metadata.name # implicit
+        - path: spec.secretName
 
       # 1. Applying reverse patches on virtual object
       # 2. Applying virtual object to virtual cluster
@@ -57,7 +60,7 @@ mappings:
       # 3. Applying rewritten virtual object to host cluster
       patches:
         - op: rewriteName
-          path: spec.ca.secretRef # -> Rewrite secretRef from virtual to host name
+          path: spec.issuerRef.secretRef # -> Rewrite secretRef from virtual to host name
 
       # 2 Directions: patches & reversePatches - Patch and StatusPatch
       # SyncDown (Create Host Object from Virtual Object)
@@ -84,27 +87,40 @@ mappings:
         # 2. Plugin creates my-certificate-x-my-namespace-x-my-cluster inside host cluster
         # 3. Cert manager controller creates secret my-certificate-x-my-namespace-x-my-cluster inside host cluster
         # 4. Sync back syncs secret my-certificate-x-my-namespace-x-my-cluster to virtual cluster namespace my-namespace
+        # 5. Annotate Secret in the host so we can keep syncing it even if name cache doesn't have name
         - kind: Secret
           apiVersion: v1
           selectors:
             - name:
-                rewrittenPath: metadata.name
+                rewrittenPath: metadata.name # name of resource synced based on fromVirtualCluster
+                
             - name:
-                rewrittenPath: spec.ca.secretRef
+                rewrittenPath: spec.secretName
                 # regEx: ^__NAME__\-[a-z0-9]+$ # -> rewritten-adsasd
                 # -> secret with name my-certificate is created inside virtual cluster
-            - ownerReference:
+            
+            - ownerReference: # leave until later
                 apiVersion: apps/v1  # -> Default
                 kind: Deployment     # -> Default
                 # -> secret with name the-controller-chose-my-name is created inside virtual cluster
-            - labelSelector:
+            - labelSelector: # leave until later
                 test: ...
-            - generateName:
+            - generateName: # leave until later
                 regEx: ^__NAME__\-$
                 path: metadata.name
           patches: # Host -> Virtual Cluster
+            # Implicit
+            # - op: rewriteName
+            #   path: metadata.name
+            #   from: metadata.name # Host name to virtual cluster name
+            # - op: rewriteNamespace
+            #   path: metadata.namespace
+            #   from: metadata.namespace # Host name to virtual cluster name
+
             - op: rewriteName
-              path: spec.certificateRef # Host name to virtual cluster name
+              path: metadata.name
+              from: spec.secretName # Host name to virtual cluster name
+            
           reversePatches: # Virtual -> Host Cluster
             - op: copyFromObject
               from: status
