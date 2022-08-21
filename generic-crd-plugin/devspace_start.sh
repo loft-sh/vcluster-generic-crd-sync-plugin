@@ -4,8 +4,8 @@ set +e  # Continue on errors
 COLOR_CYAN="\033[0;36m"
 COLOR_RESET="\033[0m"
 
-RUN_CMD="go run -mod vendor main.go"
-DEBUG_CMD="dlv debug ./main.go --listen=0.0.0.0:2345 --api-version=2 --output /tmp/__debug_bin --headless --build-flags=\"-mod=vendor\""
+RUN_CMD="export CONFIG=\$(cat hack/test-config.yaml) && go run -mod vendor main.go"
+DEBUG_CMD="export CONFIG=\$(cat hack/test-config.yaml) && dlv debug ./main.go --listen=0.0.0.0:2345 --api-version=2 --output /tmp/__debug_bin --headless --build-flags=\"-mod=vendor\""
 
 echo -e "${COLOR_CYAN}
    ____              ____

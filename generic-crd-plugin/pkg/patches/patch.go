@@ -4,31 +4,57 @@ import (
 	"encoding/json"
 	"fmt"
 
+	jsonyaml "github.com/ghodss/yaml"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v3"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type NameResolver interface {
-	TranslateName(name string) (string, error)
+	TranslateName(name string, path string) (string, error)
 }
 
-func ApplyPatches(obj1, obj2 *yaml.Node, patches []*config.Patch, nameResolver NameResolver) error {
-	for _, p := range patches {
-		err := ApplyPatch(obj1, obj2, p, nameResolver)
+func ApplyPatches(obj1, obj2 client.Object, patcheConf []*config.Patch, nameResolver NameResolver) error {
+
+	node1, err := NewJSONNode(obj1)
+	if err != nil {
+		return errors.Wrap(err, "new json yaml node")
+	}
+
+	var node2 *yaml.Node
+	if obj2 != nil {
+		node2, err = NewJSONNode(obj2)
+		if err != nil {
+			return errors.Wrap(err, "new json yaml node")
+		}
+	}
+
+	for _, p := range patcheConf {
+		err := applyPatch(node1, node2, p, nameResolver)
 		if err != nil {
 			return errors.Wrap(err, "apply patch")
 		}
 	}
 
+	objYaml, err := yaml.Marshal(node1)
+	if err != nil {
+		return errors.Wrap(err, "marshal yaml")
+	}
+
+	err = jsonyaml.Unmarshal(objYaml, obj1)
+	if err != nil {
+		return errors.Wrap(err, "convert object")
+	}
+
 	return nil
 }
 
-func ApplyPatch(obj1, obj2 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
+func applyPatch(obj1, obj2 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
 	if patch.Type == config.PatchTypeRewriteName {
-		return RewriteName(obj1, patch, resolver)
+		return RewriteName(obj1, obj2, patch, resolver)
 	} else if patch.Type == config.PatchTypeRewriteNamespace {
-		return RewriteNamespace(obj1, patch, resolver)
+		return RewriteNamespace(obj1, obj2, patch, resolver)
 	} else if patch.Type == config.PatchTypeReplace {
 		return Replace(obj1, patch)
 	} else if patch.Type == config.PatchTypeRemove {

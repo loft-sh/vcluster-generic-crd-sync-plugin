@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
 
-	jsonyaml "github.com/ghodss/yaml"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/namecache"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/patches"
@@ -17,7 +15,7 @@ import (
 	"github.com/loft-sh/vcluster-sdk/translate"
 	"github.com/pkg/errors"
 	"github.com/wI2L/jsondiff"
-	yaml "gopkg.in/yaml.v3"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
@@ -28,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func CreateFromVirtualSyncer(ctx *synccontext.RegisterContext, config *config.FromVirtualCluster, nc *namecache.NameCache) (syncer.Syncer, error) {
+func CreateFromVirtualSyncer(ctx *synccontext.RegisterContext, config *config.FromVirtualCluster, nc namecache.NameCache) (syncer.Syncer, error) {
 	obj := &unstructured.Unstructured{}
 	obj.SetKind(config.Kind)
 	obj.SetAPIVersion(config.ApiVersion)
@@ -43,7 +41,7 @@ func CreateFromVirtualSyncer(ctx *synccontext.RegisterContext, config *config.Fr
 	}
 
 	statusIsSubresource := true
-	// TODO: check if config.Kind + config.ApiVersion has status subresource
+	// TODO: [low priority] check if config.Kind + config.ApiVersion has status subresource
 
 	return &fromVirtualController{
 		NamespacedTranslator: translator.NewNamespacedTranslator(ctx, config.Kind+"-from-virtual-syncer", obj),
@@ -59,7 +57,7 @@ type fromVirtualController struct {
 	translator.NamespacedTranslator
 
 	config              *config.FromVirtualCluster
-	namecache           *namecache.NameCache
+	namecache           namecache.NameCache
 	selector            labels.Selector
 	statusIsSubresource bool
 }
@@ -75,7 +73,10 @@ func (f *fromVirtualController) SyncDown(ctx *synccontext.SyncContext, vObj clie
 	// new obj
 	newObj := f.TranslateMetadata(vObj)
 
-	err := f.applyPatches(vObj, newObj)
+	err := patches.ApplyPatches(newObj, vObj, f.config.Patches, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error applying patches: %v", err)
+	}
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to apply declared patches to %s %s/%s: %v", f.config.Kind, newObj.GetNamespace(), newObj.GetName(), err)
 	}
@@ -103,15 +104,32 @@ func (f *fromVirtualController) Sync(ctx *synccontext.SyncContext, pObj client.O
 		return ctrl.Result{}, nil
 	}
 
+	//  |
+	//  |
+	//  |
+	//  |
+	// \|/
+	// TODO: TOP priority - fix patching logic used below and in the back_syncer.Sync()
+	// the changes done on the vObj should be done on pObj too,
+	// but at the same time, rewriteName patches should use values of the vObj
+	// as input, otherwise the value will be incorrectly rewritten in an infinite loop
 	// Execute patches on physical object
-	updatedPObj := f.TranslateMetadata(vObj)
-	updatedPObj.SetUID(pObj.GetUID())
-	updatedPObj.SetResourceVersion(pObj.GetResourceVersion())
+	updatedPObj := pObj.DeepCopyObject().(client.Object)
 	result, err := executeObjectPatch(ctx.Context, ctx.PhysicalClient, updatedPObj, func() error {
-		return f.applyPatches(vObj, updatedPObj)
+		err := patches.ApplyPatches(updatedPObj, vObj, f.config.Patches, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
+		if err != nil {
+			return fmt.Errorf("error applying patches: %v", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return ctrl.Result{}, err
+		if kerrors.IsInvalid(err) {
+			ctx.Log.Infof("Warning: this message could indicate a timing issue with no significant impact, or a bug. Please report this if your resource never reaches the expected state. Error message: failed to patch virtual %s %s/%s: %v", f.config.Kind, pObj.GetNamespace(), pObj.GetName(), err)
+			// this happens when some field is being removed shortly after being added, which suggest it's a timing issue
+			// it doesn't seem to have any negative consequence besides the logged error message
+			return ctrl.Result{Requeue: true}, nil
+		}
+		return ctrl.Result{}, fmt.Errorf("failed to patch physical %s %s/%s: %v", f.config.Kind, pObj.GetNamespace(), pObj.GetName(), err)
 	}
 	if result == controllerutil.OperationResultUpdated || result == controllerutil.OperationResultUpdatedStatus || result == controllerutil.OperationResultUpdatedStatusOnly {
 		// a change will trigger reconciliation anyway, and at that point we can make
@@ -121,10 +139,20 @@ func (f *fromVirtualController) Sync(ctx *synccontext.SyncContext, pObj client.O
 
 	// Execute reverse patches on virtual object
 	_, err = executeObjectPatch(ctx.Context, ctx.VirtualClient, vObj, func() error {
-		return f.applyReversePatches(ctx, pObj, vObj)
+		err = patches.ApplyPatches(vObj, pObj, f.config.ReversePatches, &hostToVirtualNameResolver{namecache: f.namecache})
+		if err != nil {
+			return fmt.Errorf("error applying patches: %v", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return ctrl.Result{}, err
+		if kerrors.IsInvalid(err) {
+			ctx.Log.Infof("Warning: this message could indicate a timing issue with no significant impact, or a bug. Please report this if your resource never reaches the expected state. Error message: failed to patch virtual %s %s/%s: %v", f.config.Kind, vObj.GetNamespace(), vObj.GetName(), err)
+			// this happens when some field is being removed shortly after being added, which suggest it's a timing issue
+			// it doesn't seem to have any negative consequence besides the logged error message
+			return ctrl.Result{Requeue: true}, nil
+		}
+		return ctrl.Result{}, fmt.Errorf("failed to patch virtual %s %s/%s: %v", f.config.Kind, vObj.GetNamespace(), vObj.GetName(), err)
 	}
 
 	return ctrl.Result{}, nil
@@ -249,6 +277,7 @@ func executeObjectPatch(ctx context.Context, c client.Client, obj client.Object,
 				return controllerutil.OperationResultNone, err
 			}
 		}
+
 		if err := c.Status().Patch(ctx, obj, client.RawPatch(types.JSONPatchType, statusPatchBytes)); err != nil {
 			if updated {
 				return controllerutil.OperationResultUpdated, err
@@ -273,95 +302,23 @@ func (f *fromVirtualController) objectMatches(obj client.Object) bool {
 	return f.selector == nil || !f.selector.Matches(labels.Set(obj.GetLabels()))
 }
 
-func (f *fromVirtualController) applyPatches(vObj, pObj client.Object) error {
-	yamlNode, err := patches.NewJSONNode(pObj)
-	if err != nil {
-		return errors.Wrap(err, "new json yaml node")
-	}
-
-	var otherYamlNode *yaml.Node
-	if pObj != nil {
-		otherYamlNode, err = patches.NewJSONNode(vObj)
-		if err != nil {
-			return errors.Wrap(err, "new json yaml node")
-		}
-	}
-
-	err = patches.ApplyPatches(yamlNode, otherYamlNode, f.config.Patches, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
-	if err != nil {
-		return errors.Wrap(err, "error applying patches")
-	}
-
-	objYaml, err := yaml.Marshal(yamlNode)
-	if err != nil {
-		return errors.Wrap(err, "marshal yaml")
-	}
-
-	err = jsonyaml.Unmarshal(objYaml, pObj)
-	if err != nil {
-		return errors.Wrap(err, "convert object")
-	}
-
-	return nil
-}
-
-func (f *fromVirtualController) applyReversePatches(ctx *synccontext.SyncContext, pObj, vObj client.Object) error {
-	yamlNode, err := patches.NewJSONNode(vObj)
-	if err != nil {
-		return errors.Wrap(err, "new json yaml node")
-	}
-
-	var otherYamlNode *yaml.Node
-	if pObj != nil {
-		otherYamlNode, err = patches.NewJSONNode(pObj)
-		if err != nil {
-			return errors.Wrap(err, "new json yaml node")
-		}
-	}
-
-	ctx.Log.Infof("applying reverse patches")
-	err = patches.ApplyPatches(yamlNode, otherYamlNode, f.config.ReversePatches, &hostToVirtualNameResolver{namecache: f.namecache})
-	if err != nil {
-		return errors.Wrap(err, "error applying patches")
-	}
-
-	objYaml, err := yaml.Marshal(yamlNode)
-	if err != nil {
-		return errors.Wrap(err, "marshal yaml")
-	}
-
-	err = jsonyaml.Unmarshal(objYaml, vObj)
-	if err != nil {
-		return errors.Wrap(err, "convert object")
-	}
-
-	return nil
-}
-
 type virtualToHostNameResolver struct {
 	namespace string
 }
 
-func (r *virtualToHostNameResolver) TranslateName(name string) (string, error) {
+func (r *virtualToHostNameResolver) TranslateName(name string, _ string) (string, error) {
 	return translate.PhysicalName(name, r.namespace), nil
 }
 
 type hostToVirtualNameResolver struct {
-	namecache *namecache.NameCache
+	namecache namecache.NameCache
 }
 
-func (r *hostToVirtualNameResolver) TranslateName(name string) (string, error) {
-	n := (*r.namecache).ResolveName(name)
-	if n == "" {
+func (r *hostToVirtualNameResolver) TranslateName(name string, path string) (string, error) {
+	n := r.namecache.ResolveName(name, path)
+	if n.Name == "" {
 		return "", fmt.Errorf("could not translate %s host resource name to vcluster resource name", name)
 	}
 
-	parts := strings.Split(n, "/")
-	if len(parts) == 1 {
-		return n, nil
-	} else if len(parts) != 2 {
-		return "", fmt.Errorf("could not translate %s host resource name to vcluster resource name", name)
-	}
-
-	return parts[1], nil
+	return n.Name, nil
 }

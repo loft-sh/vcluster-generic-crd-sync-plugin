@@ -60,6 +60,7 @@ func (c *fromVirtualClusterCacheHandler) mappingsFromVirtualObject(obj *unstruct
 		{
 			VirtualName: obj.GetNamespace() + "/" + obj.GetName(),
 			HostName:    translate.PhysicalName(obj.GetName(), obj.GetNamespace()),
+			FieldPath:   MetadataFieldPath,
 		},
 	}
 
@@ -90,6 +91,7 @@ func (c *fromVirtualClusterCacheHandler) mappingsFromVirtualObject(obj *unstruct
 				mappings = append(mappings, mapping{
 					VirtualName: obj.GetNamespace() + "/" + m.Value,
 					HostName:    translate.PhysicalName(m.Value, obj.GetNamespace()),
+					FieldPath:   p.Path,
 				})
 			}
 		}
