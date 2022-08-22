@@ -34,25 +34,16 @@ deployments:
             env:
               # Config for testing
               # run `make install-cert-manager` within the host kube context before using
+              # Then in vcluster context create hack/selfsigned-issuer.yaml
+              # and hack/generate-dummy-certificate.yaml
+              #
+              # For convenience export config inside the dev container from the hack/test-config.yaml
+              # export CONFIG=$(cat hack/test-config.yaml)
               - name: CONFIG
                 value: |-
                   version: v1beta1
-                  mappings:
-                    - fromVirtualCluster:
-                        apiVersion: cert-manager.io/v1
-                        kind: Certificate
-                        patches:
-                          - type: rewriteName
-                            path: spec.issuerRef.name
-                        reversePatches:
-                          - type: copyFromObject
-                            fromPath: status
-                            path: status
-                          - type: copyFromObject
-                            fromPath: spec.issuerRef.name
-                            path: metadata.annotations['test.loft.sh/issuerRefName']
-                          - type: rewriteName
-                            path: metadata.annotations['test.loft.sh/issuerRefName']
+                  mappings: []
+
         syncer:
           readinessProbe:
             enabled: false

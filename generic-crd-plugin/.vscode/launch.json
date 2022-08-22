@@ -9,6 +9,7 @@
       "type": "go",
       "request": "attach",
       "mode": "remote",
+      "debugAdapter": "dlv-dap",
       "port": 2346,
       "host": "localhost",
       "substitutePath": [

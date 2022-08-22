@@ -14,14 +14,13 @@ import (
 )
 
 const (
-	PluginName          = "generic-crd-plugin"
 	ConfigurationEnvvar = "CONFIG"
 )
 
 func main() {
 
 	// init plugin
-	registerCtx, err := plugin.Init(PluginName)
+	registerCtx, err := plugin.Init()
 	if err != nil {
 		klog.Fatalf("Error initializing plugin: %v", err)
 	}
@@ -56,13 +55,12 @@ func main() {
 					klog.Fatalf("Error syncronizing CRD %s(%s) from the host cluster into vcluster: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
 				}
 
-				// TODO: decide - namecache per mapping or a single shared one?
 				nc, err := namecache.NewNameCache(registerCtx.Context, registerCtx.VirtualManager, &m)
 				if err != nil {
 					klog.Fatalf("Error seting up namecache for a mapping", err)
 				}
 
-				s, err := syncer.CreateFromVirtualSyncer(registerCtx, m.FromVirtualCluster, &nc)
+				s, err := syncer.CreateFromVirtualSyncer(registerCtx, m.FromVirtualCluster, nc)
 				if err != nil {
 					klog.Fatalf("Error creating %s(%s) syncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
 				}
@@ -70,6 +68,19 @@ func main() {
 				err = plugin.Register(s)
 				if err != nil {
 					klog.Fatalf("Error registering %s(%s) syncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
+				}
+
+				for _, c := range m.FromVirtualCluster.SyncBack {
+					// TODO: create second name cache dedicated to this syncer to avoid conflicts with "parent" cache
+					backSyncer, err := syncer.CreateBackSyncer(registerCtx, c, m.FromVirtualCluster, nc)
+					if err != nil {
+						klog.Fatalf("Error creating %s(%s) backsyncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
+					}
+
+					err = plugin.Register(backSyncer)
+					if err != nil {
+						klog.Fatalf("Error registering %s(%s) syncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
+					}
 				}
 			}
 		}

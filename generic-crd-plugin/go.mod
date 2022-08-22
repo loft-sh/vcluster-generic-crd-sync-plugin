@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/ghodss/yaml v1.0.0
-	github.com/loft-sh/vcluster-sdk v0.2.0
+	github.com/loft-sh/vcluster-sdk v0.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/vmware-labs/yaml-jsonpath v0.3.2
 	github.com/wI2L/jsondiff v0.2.0

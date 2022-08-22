@@ -192,7 +192,7 @@ test2: {}`,
 			assert.NilError(t, err, "error in node creation in test case %s", testCase.name)
 		}
 
-		err = ApplyPatch(obj1, obj2, testCase.patch, testCase.nameResolver)
+		err = applyPatch(obj1, obj2, testCase.patch, testCase.nameResolver)
 		assert.NilError(t, err, "error in applying patch in test case %s", testCase.name)
 
 		// compare output

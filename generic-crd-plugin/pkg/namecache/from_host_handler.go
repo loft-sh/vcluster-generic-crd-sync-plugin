@@ -1,10 +1,11 @@
 package namecache
 
 import (
+	"strings"
+
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"strings"
 )
 
 type fromHostClusterCacheHandler struct {
@@ -62,6 +63,7 @@ func (c *fromHostClusterCacheHandler) mappingsFromVirtualObject(obj *unstructure
 				mappings = append(mappings, mapping{
 					VirtualName: splitted[0],
 					HostName:    splitted[1],
+					// TODO: we probably need to add FieldPath here
 				})
 			}
 		}

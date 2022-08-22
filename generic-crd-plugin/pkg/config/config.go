@@ -18,23 +18,51 @@ type Mapping struct {
 	FromVirtualCluster *FromVirtualCluster `yaml:"fromVirtualCluster,omitempty" json:"fromVirtualCluster,omitempty"`
 }
 
-type FromVirtualCluster struct {
+type SyncBase struct {
 	TypeInformation `yaml:",inline" json:",inline"`
+
+	// Patches are the patches to apply on the virtual cluster objects
+	// when syncing them from the host cluster
+	Patches []*Patch `yaml:"patches,omitempty" json:"patches,omitempty"`
+
+	// ReversePatches are the patches to apply to host cluster objects
+	// after it has been synced to the virtual cluster
+	ReversePatches []*Patch `yaml:"reversePatches,omitempty" json:"reversePatches,omitempty"`
+}
+
+type FromVirtualCluster struct {
+	SyncBase `yaml:",inline" json:",inline"`
 
 	// Selector is the selector to select the objects in the host cluster.
 	// If empty will select all objects.
 	Selector *Selector `yaml:"selector,omitempty" json:"selector,omitempty"`
 
-	// Patches are the patches to apply on the host cluster objects before
-	// syncing it to the host cluster
-	Patches []*Patch `yaml:"patches,omitempty" json:"patches,omitempty"`
+	// Resources to sync back to virtual cluster
+	SyncBack []*SyncBack `yaml:"syncBack,omitempty" json:"syncBack,omitempty"`
+}
 
-	// ReversePatches are
-	ReversePatches []*Patch `yaml:"reversePatches,omitempty" json:"reversePatches,omitempty"`
+type SyncBack struct {
+	SyncBase `yaml:",inline" json:",inline"`
+
+	// Selectors are the SyncBackSelector definitions to select the objects
+	// in the host cluster thatwill be synced to the virtual cluster
+	// If empty will select all objects.
+	Selectors []*SyncBackSelector `yaml:"selectors,omitempty" json:"selectors,omitempty"`
+}
+
+type SyncBackSelector struct {
+	// Select object to sync based on its .metadata.name
+	Name *NameSyncBackSelector `yaml:"name,omitempty" json:"name,omitempty"`
+}
+
+type NameSyncBackSelector struct {
+	// Path to a field of parent sync object that references name of the resources
+	// that we wish to sync back to the virtual cluster
+	RewrittenPath string `yaml:"rewrittenPath,omitempty" json:"rewrittenPath,omitempty"`
 }
 
 type FromHostCluster struct {
-	TypeInformation `yaml:",inline" json:",inline"`
+	SyncBase `yaml:",inline" json:",inline"`
 
 	// NameMapping defines how objects will be mapped between host and
 	// virtual cluster.
@@ -43,9 +71,6 @@ type FromHostCluster struct {
 	// Selector is the selector to select the objects in the host cluster.
 	// If empty will select all objects.
 	Selector *Selector `yaml:"selector,omitempty" json:"selector,omitempty"`
-
-	// Patches are the patches to apply on the host cluster objects
-	Patches []*Patch `yaml:"patches,omitempty" json:"patches,omitempty"`
 }
 
 type TypeInformation struct {
