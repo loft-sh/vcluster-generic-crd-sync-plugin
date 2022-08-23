@@ -1,14 +1,18 @@
-version: v1beta11
+version: v2beta1
+name: generic-crd-plugin
+
 vars:
-  - name: PLUGIN_IMAGE
-    value: ghcr.io/loft-sh/vcluster-plugins/generic-crd-plugin
+  PLUGIN_IMAGE: ghcr.io/loft-sh/vcluster-plugins/generic-crd-plugin
+  DEVSPACE_FLAGS: "-n vcluster"
+
 images:
   vcluster:
     image: ${PLUGIN_IMAGE}
     dockerfile: ./Dockerfile.dev
     rebuildStrategy: ignoreContextChanges
+
 deployments:
-  - name: vcluster
+  vcluster:
     helm:
       chart:
         name: vcluster
@@ -43,7 +47,6 @@ deployments:
                 value: |-
                   version: v1beta1
                   mappings: []
-
         syncer:
           readinessProbe:
             enabled: false
@@ -52,14 +55,13 @@ deployments:
         vcluster:
           extraArgs:
             - "--kube-apiserver-arg='v=6'"
+
 dev:
-  terminal:
+  vcluster:
     imageSelector: ${PLUGIN_IMAGE}
-    command: ["./devspace_start.sh"]
-  ports:
-    - imageSelector: ${PLUGIN_IMAGE}
-      forward:
-        - port: 2346
-          remotePort: 2345
-  sync:
-    - imageSelector: ${PLUGIN_IMAGE}
+    terminal:
+      command: "./devspace_start.sh"
+    ports:
+    - port: 2346:2345
+    sync:
+    - path: ./:./

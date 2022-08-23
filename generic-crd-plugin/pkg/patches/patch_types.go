@@ -155,25 +155,13 @@ func Replace(obj1 *yaml.Node, patch *config.Patch) error {
 	return nil
 }
 
-func RewriteName(obj1, obj2 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
-	matches1, err := FindMatches(obj1, patch.Path)
+func RewriteName(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
+	matches, err := FindMatches(obj1, patch.Path)
 	if err != nil {
 		return errors.Wrap(err, "find matches")
 	}
 
-	path2 := patch.Path
-	if patch.FromPath != "" {
-		path2 = patch.FromPath
-	}
-	matches2, err := FindMatches(obj2, path2)
-	if err != nil {
-		return errors.Wrap(err, "find matches")
-	}
-	if len(matches2) == 0 {
-		return nil
-	}
-
-	for k, m := range matches1 {
+	for _, m := range matches {
 		if m.Kind == yaml.ScalarNode {
 			validated, err := ValidateAllConditions(obj1, m, patch.Conditions)
 			if err != nil {
@@ -182,18 +170,9 @@ func RewriteName(obj1, obj2 *yaml.Node, patch *config.Patch, resolver NameResolv
 				continue
 			}
 
-			value := matches2[0].Value
-			if len(matches2) == len(matches1) {
-				value = matches2[k].Value
-			}
-
-			namePath := patch.Path
-			if patch.FromPath != "" {
-				namePath = patch.FromPath
-			}
-			translatedName, err := resolver.TranslateName(value, namePath)
+			translatedName, err := resolver.TranslateName(m.Value, patch.FromPath)
 			if err != nil {
-				return errors.Wrapf(err, "virtual to host %s", value)
+				return err
 			}
 
 			newNode, err := NewNode(translatedName)
@@ -208,7 +187,7 @@ func RewriteName(obj1, obj2 *yaml.Node, patch *config.Patch, resolver NameResolv
 	return nil
 }
 
-func RewriteNamespace(obj1 *yaml.Node, obj2 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
+func RewriteNamespace(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
 	//TODO: implement
 
 	return nil

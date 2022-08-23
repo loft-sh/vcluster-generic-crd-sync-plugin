@@ -11,29 +11,29 @@ mappings:
       kind: Certificate
       # Virtual -> Host Cluster patches
       patches:
-        - type: rewriteName
+        - op: rewriteName
           path: spec.issuerRef.name
-        - type: rewriteName
+        - op: rewriteName
           path: spec.secretName
       # Host -> Virtual Cluster patches
       reversePatches:
-        - type: copyFromObject
+        - op: copyFromObject
           fromPath: status
           path: status
-        - type: copyFromObject
+        - op: copyFromObject
           fromPath: spec.issuerRef.name
           path: metadata.annotations['test.loft.sh/issuerRefName']
-        - type: rewriteName
+        - op: rewriteName
           path: metadata.annotations['test.loft.sh/issuerRefName']
           fromPath: spec.issuerRef.name
-      syncBack:
-        - kind: Secret
-          apiVersion: v1
-          selectors:
-            - name:
-                rewrittenPath: spec.secretName
+      #syncBack:
+      #  - kind: Secret
+      #    apiVersion: v1
+      #    selectors:
+      #      - name:
+      #          rewrittenPath: spec.secretName
           # Host -> Virtual Cluster patches
-          patches: [] 
+      #    patches: []
             # Implicit
             # - op: rewriteName
             #   path: metadata.name
@@ -42,4 +42,4 @@ mappings:
             #   path: metadata.namespace
             #   from: metadata.namespace # Host name to virtual cluster name
           # Virtual -> Host Cluster patches
-          reversePatches: []
+      #    reversePatches: []

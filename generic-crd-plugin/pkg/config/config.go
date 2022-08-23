@@ -104,8 +104,8 @@ type Selector struct {
 }
 
 type Patch struct {
-	// Type is the type of the patch
-	Type PatchType `yaml:"type,omitempty" json:"type,omitempty"`
+	// Operation is the type of the patch
+	Operation PatchType `yaml:"op,omitempty" json:"op,omitempty"`
 
 	// FromPath is the path from the other object
 	FromPath string `yaml:"fromPath,omitempty" json:"fromPath,omitempty"`
@@ -119,6 +119,9 @@ type Patch struct {
 	// Conditions are conditions that must be true for
 	// the patch to get executed
 	Conditions []*PatchCondition `yaml:"conditions,omitempty" json:"conditions,omitempty"`
+
+	// Ignore determines if the path should be ignored if handled as a reverse patch
+	Ignore *bool `yaml:"ignore,omitempty" json:"ignore,omitempty"`
 }
 
 type PatchType string

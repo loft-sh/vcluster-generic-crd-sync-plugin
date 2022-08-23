@@ -1,6 +1,7 @@
 package namecache
 
 import (
+	"fmt"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/patches"
 	"github.com/loft-sh/vcluster-sdk/translate"
@@ -22,6 +23,7 @@ func (c *fromVirtualClusterCacheHandler) OnAdd(obj interface{}) {
 	if ok {
 		newMappings, err := c.mappingsFromVirtualObject(unstructuredObj, c.mapping)
 		if err == nil {
+			fmt.Println(unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName())
 			c.nameCache.exchangeMapping(&virtualObject{
 				GVK:         c.gvk,
 				VirtualName: unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName(),
@@ -67,7 +69,7 @@ func (c *fromVirtualClusterCacheHandler) mappingsFromVirtualObject(obj *unstruct
 	// TODO add explicit name caches?
 
 	for _, p := range mappingConfig.Patches {
-		if p.Type != config.PatchTypeRewriteName && p.Type != config.PatchTypeRewriteNamespace {
+		if p.Operation != config.PatchTypeRewriteName && p.Operation != config.PatchTypeRewriteNamespace {
 			continue
 		}
 

@@ -15,8 +15,7 @@ type NameResolver interface {
 	TranslateName(name string, path string) (string, error)
 }
 
-func ApplyPatches(obj1, obj2 client.Object, patcheConf []*config.Patch, nameResolver NameResolver) error {
-
+func ApplyPatches(obj1, obj2 client.Object, patchesConf []*config.Patch, reversePatchesConf []*config.Patch, nameResolver NameResolver) error {
 	node1, err := NewJSONNode(obj1)
 	if err != nil {
 		return errors.Wrap(err, "new json yaml node")
@@ -30,8 +29,23 @@ func ApplyPatches(obj1, obj2 client.Object, patcheConf []*config.Patch, nameReso
 		}
 	}
 
-	for _, p := range patcheConf {
+	for _, p := range patchesConf {
 		err := applyPatch(node1, node2, p, nameResolver)
+		if err != nil {
+			return errors.Wrap(err, "apply patch")
+		}
+	}
+
+	// remove ignore paths from patched object
+	for _, p := range reversePatchesConf {
+		if p.Path == "" || (p.Ignore != nil && *p.Ignore == false) {
+			continue
+		}
+
+		err := applyPatch(node1, node2, &config.Patch{
+			Operation: config.PatchTypeRemove,
+			Path:      p.Path,
+		}, nameResolver)
 		if err != nil {
 			return errors.Wrap(err, "apply patch")
 		}
@@ -51,21 +65,21 @@ func ApplyPatches(obj1, obj2 client.Object, patcheConf []*config.Patch, nameReso
 }
 
 func applyPatch(obj1, obj2 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
-	if patch.Type == config.PatchTypeRewriteName {
-		return RewriteName(obj1, obj2, patch, resolver)
-	} else if patch.Type == config.PatchTypeRewriteNamespace {
-		return RewriteNamespace(obj1, obj2, patch, resolver)
-	} else if patch.Type == config.PatchTypeReplace {
+	if patch.Operation == config.PatchTypeRewriteName {
+		return RewriteName(obj1, patch, resolver)
+	} else if patch.Operation == config.PatchTypeRewriteNamespace {
+		return RewriteNamespace(obj1, patch, resolver)
+	} else if patch.Operation == config.PatchTypeReplace {
 		return Replace(obj1, patch)
-	} else if patch.Type == config.PatchTypeRemove {
+	} else if patch.Operation == config.PatchTypeRemove {
 		return Remove(obj1, patch)
-	} else if patch.Type == config.PatchTypeCopyFromObject {
+	} else if patch.Operation == config.PatchTypeCopyFromObject {
 		return CopyFromObject(obj1, obj2, patch)
-	} else if patch.Type == config.PatchTypeAdd {
+	} else if patch.Operation == config.PatchTypeAdd {
 		return Add(obj1, patch)
 	}
 
-	return fmt.Errorf("patch type is missing or is not recognized (%s)", patch.Type)
+	return fmt.Errorf("patch operation is missing or is not recognized (%s)", patch.Operation)
 }
 
 func NewNodeFromString(in string) (*yaml.Node, error) {

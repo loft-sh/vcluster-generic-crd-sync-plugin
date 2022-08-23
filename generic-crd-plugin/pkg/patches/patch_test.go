@@ -29,9 +29,9 @@ func TestPatch(t *testing.T) {
 		{
 			name: "copy merge",
 			patch: &config.Patch{
-				Type:     config.PatchTypeCopyFromObject,
-				FromPath: "status.test",
-				Path:     "test",
+				Operation: config.PatchTypeCopyFromObject,
+				FromPath:  "status.test",
+				Path:      "test",
 			},
 			obj1: `spec: {}
 test:
@@ -44,9 +44,9 @@ test: test`,
 		{
 			name: "copy",
 			patch: &config.Patch{
-				Type:     config.PatchTypeCopyFromObject,
-				FromPath: "status",
-				Path:     "status",
+				Operation: config.PatchTypeCopyFromObject,
+				FromPath:  "status",
+				Path:      "status",
 			},
 			obj1: `spec: {}`,
 			obj2: `status:
@@ -58,9 +58,9 @@ status:
 		{
 			name: "simple",
 			patch: &config.Patch{
-				Type:  config.PatchTypeReplace,
-				Path:  "test.test2",
-				Value: "abc",
+				Operation: config.PatchTypeReplace,
+				Path:      "test.test2",
+				Value:     "abc",
 			},
 			obj1: `test:
     test2: def`,
@@ -70,9 +70,9 @@ status:
 		{
 			name: "insert",
 			patch: &config.Patch{
-				Type:  config.PatchTypeAdd,
-				Path:  "test.test2[0].test3",
-				Value: "abc",
+				Operation: config.PatchTypeAdd,
+				Path:      "test.test2[0].test3",
+				Value:     "abc",
 			},
 			obj1: `test:
     test3: {}
@@ -86,9 +86,9 @@ test2: {}`,
 		{
 			name: "insert slice",
 			patch: &config.Patch{
-				Type:  config.PatchTypeAdd,
-				Path:  "test.test2",
-				Value: "abc",
+				Operation: config.PatchTypeAdd,
+				Path:      "test.test2",
+				Value:     "abc",
 			},
 			obj1: `test: 
     test2: 
@@ -101,9 +101,9 @@ test2: {}`,
 		{
 			name: "insert slice",
 			patch: &config.Patch{
-				Type:  config.PatchTypeReplace,
-				Path:  "test..abc",
-				Value: "def",
+				Operation: config.PatchTypeReplace,
+				Path:      "test..abc",
+				Value:     "def",
 			},
 			obj1: `test: 
     test2: 
@@ -117,9 +117,9 @@ test2: {}`,
 		{
 			name: "condition",
 			patch: &config.Patch{
-				Type:  config.PatchTypeReplace,
-				Path:  "test.abc",
-				Value: "def",
+				Operation: config.PatchTypeReplace,
+				Path:      "test.abc",
+				Value:     "def",
 				Conditions: []*config.PatchCondition{
 					{
 						Path:  "test.status",
@@ -135,9 +135,9 @@ test2: {}`,
 		{
 			name: "condition equal",
 			patch: &config.Patch{
-				Type:  config.PatchTypeReplace,
-				Path:  "test.abc",
-				Value: "def",
+				Operation: config.PatchTypeReplace,
+				Path:      "test.abc",
+				Value:     "def",
 				Conditions: []*config.PatchCondition{
 					{
 						Path: "test.status",
@@ -159,9 +159,9 @@ test2: {}`,
 		{
 			name: "condition equal",
 			patch: &config.Patch{
-				Type:  config.PatchTypeReplace,
-				Path:  "test.abc",
-				Value: "def",
+				Operation: config.PatchTypeReplace,
+				Path:      "test.abc",
+				Value:     "def",
 				Conditions: []*config.PatchCondition{
 					{
 						Path: "test.status",

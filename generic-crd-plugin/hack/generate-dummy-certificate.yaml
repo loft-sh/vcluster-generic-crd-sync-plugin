@@ -1,7 +1,7 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  generateName: dummy-
+  name: dummy-certificate
   namespace: default
   labels:
     test: first
@@ -12,4 +12,4 @@ spec:
     group: cert-manager.io
     kind: Issuer
     name: selfsigned-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab
-  secretName: sname
+  secretName: sname1234

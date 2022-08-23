@@ -41,7 +41,7 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mapping *config.Map
 
 		// check if there is at least 1 reverse patch that would use the cache
 		for _, p := range mapping.FromVirtualCluster.ReversePatches {
-			if p.Type == config.PatchTypeRewriteName || p.Type == config.PatchTypeRewriteNamespace {
+			if p.Operation == config.PatchTypeRewriteName || p.Operation == config.PatchTypeRewriteNamespace {
 				found = true
 				break
 			}
@@ -72,7 +72,7 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mapping *config.Map
 			// check if there is a patch that rewrites a name
 			found := false
 			for _, p := range mapping.FromVirtualCluster.Patches {
-				if p.Type == config.RewriteNameTypeFromHostToVirtualNamespace {
+				if p.Operation == config.RewriteNameTypeFromHostToVirtualNamespace {
 					found = true
 					break
 				}
@@ -156,13 +156,12 @@ func (n *nameCache) ResolveName(hostName string, fieldPath string) types.Namespa
 				}
 			}
 		}
-
 	}
 
 	return types.NamespacedName{}
 }
 
-// Returns HostName of a mapping based on the fieldPath and VirtualName of the mapping
+// ResolveHostName returns HostName of a mapping based on the fieldPath and VirtualName of the mapping
 func (n *nameCache) ResolveHostName(virtualName types.NamespacedName, fieldPath string) string {
 	vName := virtualName.Namespace + "/" + virtualName.Name
 	n.m.Lock()
