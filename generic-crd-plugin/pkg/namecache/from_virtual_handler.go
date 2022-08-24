@@ -24,10 +24,9 @@ func (c *fromVirtualClusterCacheHandler) OnAdd(obj interface{}) {
 		newMappings, err := c.mappingsFromVirtualObject(unstructuredObj, c.mapping)
 		if err == nil {
 			fmt.Println(unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName())
-			c.nameCache.exchangeMapping(&virtualObject{
-				GVK:         c.gvk,
-				VirtualName: unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName(),
-				Mappings:    newMappings,
+			c.nameCache.exchangeMapping(&indexMappings{
+				Name:     unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName(),
+				Mappings: newMappings,
 			})
 		}
 	}
@@ -38,10 +37,9 @@ func (c *fromVirtualClusterCacheHandler) OnUpdate(oldObj, newObj interface{}) {
 	if ok {
 		newMappings, err := c.mappingsFromVirtualObject(unstructuredObj, c.mapping)
 		if err == nil {
-			c.nameCache.exchangeMapping(&virtualObject{
-				GVK:         c.gvk,
-				VirtualName: unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName(),
-				Mappings:    newMappings,
+			c.nameCache.exchangeMapping(&indexMappings{
+				Name:     unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName(),
+				Mappings: newMappings,
 			})
 		}
 	}
@@ -50,24 +48,20 @@ func (c *fromVirtualClusterCacheHandler) OnUpdate(oldObj, newObj interface{}) {
 func (c *fromVirtualClusterCacheHandler) OnDelete(obj interface{}) {
 	unstructuredObj, ok := obj.(*unstructured.Unstructured)
 	if ok {
-		c.nameCache.removeMapping(&virtualObject{
-			GVK:         c.gvk,
-			VirtualName: unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName(),
-		})
+		c.nameCache.removeMapping(unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName())
 	}
 }
 
-func (c *fromVirtualClusterCacheHandler) mappingsFromVirtualObject(obj *unstructured.Unstructured, mappingConfig *config.FromVirtualCluster) ([]mapping, error) {
-	mappings := []mapping{
-		{
-			VirtualName: obj.GetNamespace() + "/" + obj.GetName(),
-			HostName:    translate.PhysicalName(obj.GetName(), obj.GetNamespace()),
-			FieldPath:   MetadataFieldPath,
-		},
-	}
+func (c *fromVirtualClusterCacheHandler) mappingsFromVirtualObject(obj *unstructured.Unstructured, mappingConfig *config.FromVirtualCluster) (map[string]map[string]string, error) {
+	mappings := map[string]map[string]string{}
+	mappings[IndexPhysicalToVirtualName] = map[string]string{}
+	mappings[IndexPhysicalToVirtualNamePath] = map[string]string{}
+	mappings[IndexVirtualToPhysicalNamePath] = map[string]string{}
+
+	// add metadata.name mapping
+	addSingleMapping(mappings, obj.GetNamespace()+"/"+obj.GetName(), translate.PhysicalName(obj.GetName(), obj.GetNamespace()), MetadataFieldPath)
 
 	// TODO add explicit name caches?
-
 	for _, p := range mappingConfig.Patches {
 		if p.Operation != config.PatchTypeRewriteName && p.Operation != config.PatchTypeRewriteNamespace {
 			continue
@@ -90,14 +84,16 @@ func (c *fromVirtualClusterCacheHandler) mappingsFromVirtualObject(obj *unstruct
 
 		for _, m := range matches {
 			if m.Kind == yaml.ScalarNode {
-				mappings = append(mappings, mapping{
-					VirtualName: obj.GetNamespace() + "/" + m.Value,
-					HostName:    translate.PhysicalName(m.Value, obj.GetNamespace()),
-					FieldPath:   p.Path,
-				})
+				addSingleMapping(mappings, obj.GetNamespace()+"/"+m.Value, translate.PhysicalName(m.Value, obj.GetNamespace()), p.Path)
 			}
 		}
 	}
 
 	return mappings, nil
+}
+
+func addSingleMapping(mappings map[string]map[string]string, virtualName, hostName, path string) {
+	mappings[IndexPhysicalToVirtualName][hostName] = virtualName
+	mappings[IndexPhysicalToVirtualNamePath][hostName+"/"+path] = virtualName
+	mappings[IndexVirtualToPhysicalNamePath][virtualName+"/"+path] = hostName
 }

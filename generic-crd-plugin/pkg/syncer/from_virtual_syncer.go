@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -142,7 +143,12 @@ type hostToVirtualNameResolver struct {
 }
 
 func (r *hostToVirtualNameResolver) TranslateName(name string, path string) (string, error) {
-	n := r.nameCache.ResolveName(name, path)
+	var n types.NamespacedName
+	if path == "" {
+		n = r.nameCache.ResolveName(name)
+	} else {
+		n = r.nameCache.ResolveNamePath(name, path)
+	}
 	if n.Name == "" {
 		return "", fmt.Errorf("could not translate %s host resource name to vcluster resource name", name)
 	}

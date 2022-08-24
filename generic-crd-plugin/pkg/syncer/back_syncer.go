@@ -7,6 +7,7 @@ import (
 	"github.com/wI2L/jsondiff"
 	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
+	"strings"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/namecache"
@@ -193,12 +194,6 @@ func (b *backSyncController) SyncUp(ctx *synccontext.SyncContext, pObj client.Ob
 	// add annotation with virtual name and namespace on the physical object
 	err = b.addAnnotationsToPhysicalObject(ctx, pObj, newObj)
 	if err != nil {
-		if kerrors.IsInvalid(err) {
-			ctx.Log.Infof("Warning: this message could indicate a timing issue with no significant impact, or a bug. Please report this if your resource never reaches the expected state. Error message: failed to patch virtual %s %s/%s: %v", b.config.Kind, pObj.GetNamespace(), pObj.GetName(), err)
-			// this happens when some field is being removed shortly after being added, which suggest it's a timing issue
-			// it doesn't seem to have any negative consequence besides the logged error message
-			return ctrl.Result{Requeue: true}, nil
-		}
 		return ctrl.Result{}, err
 	}
 
@@ -216,7 +211,7 @@ func (b *backSyncController) VirtualToPhysical(req types.NamespacedName, _ clien
 	var n string
 	for _, s := range b.config.Selectors {
 		if s.Name != nil {
-			n = b.parentNamecache.ResolveHostName(req, s.Name.RewrittenPath)
+			n = b.parentNamecache.ResolveHostNamePath(req, s.Name.RewrittenPath)
 		}
 
 		// TODO: implement other selector types here
@@ -244,7 +239,7 @@ func (b *backSyncController) PhysicalToVirtual(pObj client.Object) types.Namespa
 	for _, s := range b.config.Selectors {
 		nn := types.NamespacedName{}
 		if s.Name != nil {
-			nn := b.parentNamecache.ResolveName(pObj.GetName(), s.Name.RewrittenPath)
+			nn := b.parentNamecache.ResolveNamePath(pObj.GetName(), s.Name.RewrittenPath)
 			if nn.Name == "" {
 				continue
 			}
@@ -268,15 +263,27 @@ func (b *backSyncController) Start(ctx context.Context, h handler.EventHandler, 
 	// setup the necessary name cache hooks
 	for _, s := range b.config.Selectors {
 		if s.Name != nil {
-			b.parentNamecache.AddPathChangeHook(s.Name.RewrittenPath, func(nn types.NamespacedName) {
-				if nn.Name != "" {
-					q.Add(reconcile.Request{NamespacedName: nn})
+			rewrittenPath := namecache.MetadataFieldPath
+			if s.Name.RewrittenPath != "" {
+				rewrittenPath = s.Name.RewrittenPath
+			}
+
+			b.parentNamecache.AddChangeHook(namecache.IndexPhysicalToVirtualNamePath, func(name, key, value string) {
+				if name != "" {
+					// key is format NAMESPACE/NAME/PATH
+					splitted := strings.Split(key, "/")
+					path := strings.Join(splitted[2:], "/")
+					if path == rewrittenPath {
+						q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
+							Namespace: splitted[0],
+							Name:      splitted[1],
+						}})
+					}
 				}
 			})
 		}
 
 		// TODO: implement other selector types here
-
 	}
 	return nil
 }

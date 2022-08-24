@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -20,26 +19,36 @@ const (
 	MetadataFieldPath = "metadata.name"
 )
 
-type HookFunc func(types.NamespacedName)
+const (
+	IndexPhysicalToVirtualName     = "indexphysicaltovirtualname"
+	IndexPhysicalToVirtualNamePath = "indexphysicaltovirtualnamepath"
+	IndexVirtualToPhysicalNamePath = "indexvirtualtophysicalnamepath"
+)
+
+type HookFunc func(name, key, value string)
 
 type NameCache interface {
-	ResolveName(hostName string, path string) types.NamespacedName
-	ResolveHostName(virtualName types.NamespacedName, path string) string
-	AddPathChangeHook(path string, hookFunc HookFunc)
+	GetFirstByIndex(index, key string) string
+	ResolveName(hostName string) types.NamespacedName
+	ResolveNamePath(hostName string, path string) types.NamespacedName
+	ResolveHostNamePath(virtualName types.NamespacedName, path string) string
+	AddChangeHook(index string, hookFunc HookFunc)
 }
 
 func NewNameCache(ctx context.Context, manager ctrl.Manager, mapping *config.Mapping) (NameCache, error) {
 	nc := &nameCache{
-		manager:            manager,
-		hostToVirtualNames: map[string]map[string][]*virtualObject{},
-		virtualObjects:     map[string]*virtualObject{},
-		pathHooks:          map[string][]HookFunc{},
+		manager: manager,
+		indices: map[schema.GroupVersionKind]map[string]map[string][]*Object{},
+		objects: map[schema.GroupVersionKind]map[string]*indexMappings{},
+		hooks:   map[schema.GroupVersionKind]map[string][]HookFunc{},
 	}
 
 	if mapping.FromVirtualCluster != nil {
-		found := false
+		// add informer to cache
+		gvk := schema.FromAPIVersionAndKind(mapping.FromVirtualCluster.ApiVersion, mapping.FromVirtualCluster.Kind)
 
 		// check if there is at least 1 reverse patch that would use the cache
+		found := false
 		for _, p := range mapping.FromVirtualCluster.ReversePatches {
 			if p.Operation == config.PatchTypeRewriteName || p.Operation == config.PatchTypeRewriteNamespace {
 				found = true
@@ -51,8 +60,7 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mapping *config.Map
 			return nc, nil
 		}
 
-		// add informer to cache
-		gvk := schema.FromAPIVersionAndKind(mapping.FromVirtualCluster.ApiVersion, mapping.FromVirtualCluster.Kind)
+		// construct object and watch
 		obj := &unstructured.Unstructured{}
 		obj.SetAPIVersion(mapping.FromVirtualCluster.ApiVersion)
 		obj.SetKind(mapping.FromVirtualCluster.Kind)
@@ -66,37 +74,8 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mapping *config.Map
 			mapping:   mapping.FromVirtualCluster,
 			nameCache: nc,
 		})
-	} else if mapping.FromHostCluster != nil {
-		// check if there is at least 1 mapping
-		if mapping.FromHostCluster.NameMapping.RewriteName != config.RewriteNameTypeFromHostToVirtualNamespace {
-			// check if there is a patch that rewrites a name
-			found := false
-			for _, p := range mapping.FromVirtualCluster.Patches {
-				if p.Operation == config.RewriteNameTypeFromHostToVirtualNamespace {
-					found = true
-					break
-				}
-			}
-			if !found {
-				return nc, nil
-			}
-		}
-
-		// add informer to cache
-		gvk := schema.FromAPIVersionAndKind(mapping.FromHostCluster.ApiVersion, mapping.FromHostCluster.Kind)
-		obj := &unstructured.Unstructured{}
-		obj.SetAPIVersion(mapping.FromHostCluster.ApiVersion)
-		obj.SetKind(mapping.FromHostCluster.Kind)
-		informer, err := nc.manager.GetCache().GetInformer(ctx, obj)
-		if err != nil {
-			return nil, errors.Wrapf(err, "get informer for %v", gvk)
-		}
-
-		informer.AddEventHandler(&fromHostClusterCacheHandler{
-			gvk:       gvk,
-			mapping:   mapping.FromVirtualCluster,
-			nameCache: nc,
-		})
+	} else {
+		return nil, fmt.Errorf("currently expects fromVirtualCluster to be defined")
 	}
 
 	return nc, nil
@@ -104,34 +83,37 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mapping *config.Map
 
 type nameCache struct {
 	manager ctrl.Manager
+	m       sync.Mutex
 
-	m                  sync.Mutex
-	hostToVirtualNames map[string]map[string][]*virtualObject
-	virtualObjects     map[string]*virtualObject
-	pathHooks          map[string][]HookFunc
+	// TODO: gvk is currently a private member, in future we probably want to allow multiple
+	// gvk's the user then can choose from.
+	gvk schema.GroupVersionKind
+
+	// GVK -> Index -> Lookup Key -> Object
+	indices map[schema.GroupVersionKind]map[string]map[string][]*Object
+	// GVK -> Name -> Mappings
+	objects map[schema.GroupVersionKind]map[string]*indexMappings
+	// GVK -> Index -> Hooks
+	hooks map[schema.GroupVersionKind]map[string][]HookFunc
 }
 
-type virtualObject struct {
-	GVK         schema.GroupVersionKind
-	VirtualName string
+type Object struct {
+	// Name of the object this mapping was retrieved from
+	Name string
 
-	Mappings []mapping
+	// Value this object maps to in the given index and lookup key
+	Value string
 }
 
-type mapping struct {
-	// VirtualName holds the name in format Namespace/Name
-	VirtualName string
-	// HostName holds the generated name in format Name
-	HostName string
-	// Path to the field used for creating this mapping
-	FieldPath string
+type indexMappings struct {
+	// Name of the object this mapping was retrieved from
+	Name string
+
+	// Mappings maps the Index -> Lookup Key -> Value
+	Mappings map[string]map[string]string
 }
 
-func (v virtualObject) String() string {
-	return v.VirtualName + "/" + v.GVK.String()
-}
-
-func stringToNamespacedName(n string) types.NamespacedName {
+func StringToNamespacedName(n string) types.NamespacedName {
 	nn := types.NamespacedName{}
 	parts := strings.Split(n, "/")
 	if len(parts) == 2 {
@@ -141,135 +123,187 @@ func stringToNamespacedName(n string) types.NamespacedName {
 	return nn
 }
 
-func (n *nameCache) ResolveName(hostName string, fieldPath string) types.NamespacedName {
+func (n *nameCache) GetByIndex(gvk schema.GroupVersionKind, index, key string) []*Object {
 	n.m.Lock()
 	defer n.m.Unlock()
 
-	if len(n.hostToVirtualNames[fieldPath]) > 0 {
-		slice := n.hostToVirtualNames[fieldPath][hostName]
-		if len(slice) > 0 {
-			for _, virtualObject := range slice {
-				for _, m := range virtualObject.Mappings {
-					if m.HostName == hostName {
-						return stringToNamespacedName(m.VirtualName)
-					}
-				}
-			}
-		}
+	indicesMap, ok := n.indices[gvk]
+	if !ok {
+		return nil
 	}
 
-	return types.NamespacedName{}
-}
-
-// ResolveHostName returns HostName of a mapping based on the fieldPath and VirtualName of the mapping
-func (n *nameCache) ResolveHostName(virtualName types.NamespacedName, fieldPath string) string {
-	vName := virtualName.Namespace + "/" + virtualName.Name
-	n.m.Lock()
-	defer n.m.Unlock()
-
-	// TODO: improve data structure used in the cache so we can avoid brute force search below
-	for _, virtualObject := range n.virtualObjects {
-		for _, m := range virtualObject.Mappings {
-			if m.VirtualName == vName && m.FieldPath == fieldPath {
-				return m.HostName
-			}
-		}
+	keysMap, ok := indicesMap[index]
+	if !ok {
+		return nil
 	}
 
-	return ""
+	return keysMap[key]
 }
 
-func (n *nameCache) RemoveMapping(object *virtualObject) {
+func (n *nameCache) GetFirstByIndex(index, key string) string {
+	objects := n.GetByIndex(n.gvk, index, key)
+	if len(objects) == 0 {
+		return ""
+	}
+
+	return objects[0].Value
+}
+
+func (n *nameCache) ResolveName(hostName string) types.NamespacedName {
+	value := n.GetFirstByIndex(IndexPhysicalToVirtualName, hostName)
+	if value == "" {
+		return types.NamespacedName{}
+	}
+
+	return StringToNamespacedName(value)
+}
+
+func (n *nameCache) ResolveNamePath(hostName, fieldPath string) types.NamespacedName {
+	value := n.GetFirstByIndex(IndexPhysicalToVirtualNamePath, hostName+"/"+fieldPath)
+	if value == "" {
+		return types.NamespacedName{}
+	}
+
+	return StringToNamespacedName(value)
+}
+
+func (n *nameCache) ResolveHostNamePath(virtualName types.NamespacedName, fieldPath string) string {
+	vName := virtualName.Namespace + "/" + virtualName.Name + "/" + fieldPath
+	return n.GetFirstByIndex(IndexVirtualToPhysicalNamePath, vName)
+}
+
+func (n *nameCache) RemoveMapping(name string) {
 	n.m.Lock()
 	defer n.m.Unlock()
 
-	n.removeMapping(object)
+	n.removeMapping(name)
 }
 
-func (n *nameCache) removeMapping(object *virtualObject) {
-	name := object.String()
-	oldVirtualObject, ok := n.virtualObjects[name]
-	if ok {
-		delete(n.virtualObjects, name)
+func (n *nameCache) removeMapping(name string) {
+	gvk := n.gvk
+	objectsMap, ok := n.objects[gvk]
+	if !ok || objectsMap == nil {
+		return
+	}
 
-		for _, mapping := range oldVirtualObject.Mappings {
-			if len(n.hostToVirtualNames[mapping.FieldPath]) == 0 {
+	mappings, ok := objectsMap[name]
+	if !ok || mappings == nil {
+		return
+	}
+
+	// make sure object is deleted
+	delete(objectsMap, name)
+
+	// delete the mappings
+	for index, mappingKeyValues := range mappings.Mappings {
+		for mappingKey, mappingValue := range mappingKeyValues {
+			indexMappings, ok := n.indices[gvk]
+			if len(indexMappings) == 0 || !ok {
 				continue
 			}
-			slice, ok := n.hostToVirtualNames[mapping.FieldPath][mapping.HostName]
-			if ok {
-				if len(slice) == 0 {
-					delete(n.hostToVirtualNames[mapping.FieldPath], mapping.HostName)
-					continue
-				} else if len(slice) == 1 && slice[0].String() == name {
-					delete(n.hostToVirtualNames[mapping.FieldPath], mapping.HostName)
+
+			keyValueMappings, ok := indexMappings[index]
+			if len(keyValueMappings) == 0 || !ok {
+				continue
+			}
+
+			objectMappings, ok := keyValueMappings[mappingKey]
+			if !ok || len(objectMappings) == 0 {
+				continue
+			} else if len(objectMappings) == 1 {
+				delete(n.indices[gvk][index], mappingKey)
+			}
+
+			otherMappings := []*Object{}
+			for _, objectMapping := range objectMappings {
+				if objectMapping.Name == name {
 					continue
 				}
 
-				otherObjects := []*virtualObject{}
-				for _, oldObject := range slice {
-					if oldObject.String() == name {
-						continue
-					}
-					otherObjects = append(otherObjects, oldObject)
-				}
-				if len(slice) == 0 {
-					delete(n.hostToVirtualNames[mapping.FieldPath], mapping.HostName)
-					continue
-				}
-				n.hostToVirtualNames[mapping.FieldPath][mapping.HostName] = otherObjects
+				otherMappings = append(otherMappings, objectMapping)
 			}
+			n.indices[gvk][index][mappingKey] = otherMappings
+
+			// execute hooks for this index
+			n.executeHooks(gvk, index, name, mappingKey, mappingValue)
 		}
 	}
 }
 
-func (n *nameCache) exchangeMapping(object *virtualObject) {
+func (n *nameCache) exchangeMapping(object *indexMappings) {
 	n.m.Lock()
 	defer n.m.Unlock()
 
-	name := object.String()
-	oldVirtualObject, ok := n.virtualObjects[name]
-	if ok && equality.Semantic.DeepEqual(object, oldVirtualObject) {
+	gvk := n.gvk
+	if n.objects[gvk] == nil {
+		n.objects[gvk] = map[string]*indexMappings{}
+	}
+
+	oldObject, ok := n.objects[gvk][object.Name]
+	if ok && equality.Semantic.DeepEqual(object, oldObject) {
 		return
 	} else if ok {
 		// remove
-		n.removeMapping(object)
+		n.removeMapping(object.Name)
 	}
 
 	// add
 	if len(object.Mappings) > 0 {
-		n.virtualObjects[object.String()] = object
-		for _, m := range object.Mappings {
-			if len(n.hostToVirtualNames[m.FieldPath]) == 0 {
-				n.hostToVirtualNames[m.FieldPath] = map[string][]*virtualObject{}
-			}
-			slice, ok := n.hostToVirtualNames[m.FieldPath][m.HostName]
-			if ok {
-				slice = append(slice, object)
-				n.hostToVirtualNames[m.FieldPath][m.HostName] = slice
-			} else {
-				n.hostToVirtualNames[m.FieldPath][m.HostName] = []*virtualObject{object}
-			}
+		n.objects[gvk][object.Name] = object
+	}
+	if n.indices[gvk] == nil {
+		n.indices[gvk] = map[string]map[string][]*Object{}
+	}
 
-			// execute hooks for the mappings that had a change to virtual name
-			executeHooks := true
-			if oldVirtualObject != nil {
-				for _, om := range oldVirtualObject.Mappings {
-					if m.FieldPath == om.FieldPath {
-						executeHooks = m.VirtualName != om.VirtualName
-						break
-					}
-				}
-			}
-			if executeHooks {
-				for _, hook := range n.pathHooks[m.FieldPath] {
-					hook(stringToNamespacedName(m.VirtualName))
-				}
-			}
+	// add index values
+	for index, mappingKeyValues := range object.Mappings {
+		if len(mappingKeyValues) == 0 {
+			continue
+		}
+		if n.indices[gvk][index] == nil {
+			n.indices[gvk][index] = map[string][]*Object{}
+		}
+
+		for key, value := range mappingKeyValues {
+			values := n.indices[gvk][index][key]
+			values = append(values, &Object{
+				Name:  object.Name,
+				Value: value,
+			})
+			n.indices[gvk][index][key] = values
+
+			// execute hooks for this index
+			n.executeHooks(gvk, index, object.Name, key, value)
 		}
 	}
 }
 
-func (n *nameCache) AddPathChangeHook(path string, hookFunc HookFunc) {
-	n.pathHooks[path] = append(n.pathHooks[path], hookFunc)
+func (n *nameCache) executeHooks(gvk schema.GroupVersionKind, index string, name, key, value string) {
+	gvkHooks, ok := n.hooks[gvk]
+	if !ok {
+		return
+	}
+
+	hooks, ok := gvkHooks[index]
+	if !ok {
+		return
+	}
+
+	for _, hook := range hooks {
+		hook(name, key, value)
+	}
+}
+
+func (n *nameCache) AddChangeHook(index string, hookFunc HookFunc) {
+	n.m.Lock()
+	defer n.m.Unlock()
+
+	gvk := n.gvk
+	if n.hooks[gvk] == nil {
+		n.hooks[gvk] = map[string][]HookFunc{}
+	}
+	if n.hooks[gvk][index] == nil {
+		n.hooks[gvk][index] = []HookFunc{}
+	}
+	n.hooks[gvk][index] = append(n.hooks[gvk][index], hookFunc)
 }
