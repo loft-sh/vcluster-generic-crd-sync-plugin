@@ -67,7 +67,7 @@ type fromVirtualController struct {
 
 func (f *fromVirtualController) SyncDown(ctx *synccontext.SyncContext, vObj client.Object) (ctrl.Result, error) {
 	// check if selector matches
-	if f.isExcluded(vObj) || !f.objectMatches(vObj) {
+	if isControlled(vObj) || !f.objectMatches(vObj) {
 		return ctrl.Result{}, nil
 	}
 
@@ -83,9 +83,13 @@ func (f *fromVirtualController) SyncDown(ctx *synccontext.SyncContext, vObj clie
 
 	return ctrl.Result{}, nil
 }
+func (f *fromVirtualController) isExcluded(pObj client.Object) bool {
+	labels := pObj.GetLabels()
+	return labels == nil || labels[controlledByLabel] != f.getControllerID()
+}
 
 func (f *fromVirtualController) Sync(ctx *synccontext.SyncContext, pObj client.Object, vObj client.Object) (ctrl.Result, error) {
-	if f.isExcluded(vObj) {
+	if isControlled(vObj) || f.isExcluded(pObj) {
 		return ctrl.Result{}, nil
 	} else if !f.objectMatches(vObj) {
 		ctx.Log.Infof("delete physical %s %s/%s, because it is not used anymore", f.config.Kind, pObj.GetNamespace(), pObj.GetName())
@@ -135,6 +139,17 @@ func (f *fromVirtualController) Sync(ctx *synccontext.SyncContext, pObj client.O
 	return ctrl.Result{}, nil
 }
 
+var _ syncer.UpSyncer = &fromVirtualController{}
+
+func (f *fromVirtualController) SyncUp(ctx *synccontext.SyncContext, pObj client.Object) (ctrl.Result, error) {
+	if !translate.IsManaged(pObj) || f.isExcluded(pObj) {
+		return ctrl.Result{}, nil
+	}
+
+	// delete physical object because virtual one is missing
+	return syncer.DeleteObject(ctx, pObj)
+}
+
 func (f *fromVirtualController) getControllerID() string {
 	if f.config.ID != "" {
 		return f.config.ID
@@ -142,6 +157,7 @@ func (f *fromVirtualController) getControllerID() string {
 	return plugin.GetPluginName()
 }
 
+// TranslateMetadata converts the virtual object into a physical object
 func (f *fromVirtualController) TranslateMetadata(vObj client.Object) client.Object {
 	pObj := f.NamespacedTranslator.TranslateMetadata(vObj)
 	labels := pObj.GetLabels()
@@ -158,11 +174,10 @@ func (f *fromVirtualController) IsManaged(pObj client.Object) (bool, error) {
 		return false, nil
 	}
 
-	labels := pObj.GetLabels()
-	return labels != nil && labels[controlledByLabel] == f.getControllerID(), nil
+	return !f.isExcluded(pObj), nil
 }
 
-func (f *fromVirtualController) isExcluded(obj client.Object) bool {
+func isControlled(obj client.Object) bool {
 	return obj.GetLabels() != nil && obj.GetLabels()[controlledByLabel] != ""
 }
 

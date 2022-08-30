@@ -88,11 +88,8 @@ func (b *backSyncController) ReconcileStart(ctx *synccontext.SyncContext, req ct
 		vObj := b.Resource()
 		err := ctx.VirtualClient.Get(ctx.Context, types.NamespacedName{Namespace: req.Namespace, Name: req.Name}, vObj)
 		if err == nil {
-			labels := vObj.GetLabels()
-			if labels != nil && labels[controlledByLabel] == b.getControllerID() {
-				_, err := b.SyncDown(ctx, vObj)
-				return true, err
-			}
+			_, err := b.SyncDown(ctx, vObj)
+			return true, err
 		}
 
 		return true, nil
@@ -112,7 +109,16 @@ func (b *backSyncController) RegisterIndices(ctx *synccontext.RegisterContext) e
 	return nil
 }
 
+func (b *backSyncController) isExcluded(vObj client.Object) bool {
+	labels := vObj.GetLabels()
+	return labels == nil || labels[controlledByLabel] != b.getControllerID()
+}
+
 func (b *backSyncController) SyncDown(ctx *synccontext.SyncContext, vObj client.Object) (ctrl.Result, error) {
+	if b.isExcluded(vObj) {
+		return ctrl.Result{}, nil
+	}
+
 	ctx.Log.Infof("delete virtual %s/%s, because physical is missing, but virtual object exists", vObj.GetNamespace(), vObj.GetName())
 	err := ctx.VirtualClient.Delete(ctx.Context, vObj)
 	if err != nil {
@@ -123,7 +129,9 @@ func (b *backSyncController) SyncDown(ctx *synccontext.SyncContext, vObj client.
 }
 
 func (b *backSyncController) Sync(ctx *synccontext.SyncContext, pObj client.Object, vObj client.Object) (ctrl.Result, error) {
-	//ctx.Log.Infof("Sync() for pObj %s / vObj %s/%s", pObj.GetName(), vObj.GetNamespace(), vObj.GetName())
+	if b.isExcluded(vObj) {
+		return ctrl.Result{}, nil
+	}
 
 	// execute reverse patches
 	result, err := b.patcher.ApplyReversePatches(ctx.Context, pObj, vObj, b.config.ReversePatches, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
@@ -189,6 +197,7 @@ func (b *backSyncController) SyncUp(ctx *synccontext.SyncContext, pObj client.Ob
 	return ctrl.Result{}, nil
 }
 
+// translateMetadata converts the physical object into a virtual object
 func (b *backSyncController) translateMetadata(pObj client.Object) (client.Object, error) {
 	vNN := b.PhysicalToVirtual(pObj)
 	if vNN.Name == "" {
