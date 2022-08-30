@@ -24,46 +24,42 @@ type patcher struct {
 
 	statusIsSubresource bool
 	log                 log.Logger
-
-	translateMetadata func(vObj client.Object) client.Object
 }
 
-func (s *patcher) ApplyPatches(ctx context.Context, fromObj, toObj client.Object, patchesConfig, reversePatchesConfig []*config.Patch, nameResolver patches.NameResolver) error {
-	toObjBase, err := toUnstructured(s.translateMetadata(fromObj))
+func (s *patcher) ApplyPatches(ctx context.Context, fromObj, toObj client.Object, patchesConfig, reversePatchesConfig []*config.Patch, translateMetadata func(vObj client.Object) (client.Object, error), nameResolver patches.NameResolver) (client.Object, error) {
+	translatedObject, err := translateMetadata(fromObj)
 	if err != nil {
-		return err
+		return nil, errors.Wrap(err, "translate object")
+	}
+
+	toObjBase, err := toUnstructured(translatedObject)
+	if err != nil {
+		return nil, err
 	}
 	toObjCopied := toObjBase.DeepCopy()
 
 	// apply patches on from object
 	err = patches.ApplyPatches(toObjCopied, toObj, patchesConfig, reversePatchesConfig, nameResolver)
 	if err != nil {
-		return fmt.Errorf("error applying patches: %v", err)
+		return nil, fmt.Errorf("error applying patches: %v", err)
 	}
 
 	// compare status
 	if s.statusIsSubresource {
-		_, hasBeforeStatus, err := unstructured.NestedFieldCopy(toObjBase.Object, "status")
-		if err != nil {
-			return err
-		}
 		_, hasAfterStatus, err := unstructured.NestedFieldCopy(toObjCopied.Object, "status")
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		// always apply status if it's there
-		if hasBeforeStatus || hasAfterStatus {
+		if hasAfterStatus {
 			s.log.Infof("Apply status of %s during patching", toObjCopied.GetName())
 			err = s.toClient.Status().Patch(ctx, toObjCopied.DeepCopy(), client.Apply, client.ForceOwnership, client.FieldOwner(fieldManager))
 			if err != nil {
-				return errors.Wrap(err, "apply status")
+				return nil, errors.Wrap(err, "apply status")
 			}
 		}
 
-		if hasBeforeStatus {
-			unstructured.RemoveNestedField(toObjBase.Object, "status")
-		}
 		if hasAfterStatus {
 			unstructured.RemoveNestedField(toObjCopied.Object, "status")
 		}
@@ -71,12 +67,13 @@ func (s *patcher) ApplyPatches(ctx context.Context, fromObj, toObj client.Object
 
 	// always apply object
 	s.log.Infof("Apply %s during patching", toObjCopied.GetName())
-	err = s.toClient.Patch(ctx, toObjCopied.DeepCopy(), client.Apply, client.ForceOwnership, client.FieldOwner(fieldManager))
+	outObject := toObjCopied.DeepCopy()
+	err = s.toClient.Patch(ctx, outObject, client.Apply, client.ForceOwnership, client.FieldOwner(fieldManager))
 	if err != nil {
-		return errors.Wrap(err, "apply object")
+		return nil, errors.Wrap(err, "apply object")
 	}
 
-	return nil
+	return outObject, nil
 }
 
 func (s *patcher) ApplyReversePatches(ctx context.Context, fromObj, otherObj client.Object, reversePatchConfig []*config.Patch, nameResolver patches.NameResolver) (controllerutil.OperationResult, error) {

@@ -2,22 +2,18 @@ package syncer
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/wI2L/jsondiff"
-	"k8s.io/apimachinery/pkg/runtime"
-	"reflect"
+	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/plugin"
+	"github.com/loft-sh/vcluster-sdk/log"
 	"strings"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/namecache"
-	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/patches"
 	"github.com/loft-sh/vcluster-sdk/syncer"
 	synccontext "github.com/loft-sh/vcluster-sdk/syncer/context"
 	"github.com/loft-sh/vcluster-sdk/syncer/translator"
 	"github.com/loft-sh/vcluster-sdk/translate"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
@@ -31,10 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-const (
-	IndexByVirtualName = "indexbyvirtualname"
-)
-
 func CreateBackSyncer(ctx *synccontext.RegisterContext, config *config.SyncBack, parentConfig *config.FromVirtualCluster, parentNC namecache.NameCache) (syncer.Syncer, error) {
 	if len(config.Selectors) == 0 {
 		return nil, fmt.Errorf("the syncBack config for %s (%s) is missing Selectors", config.Kind, parentConfig.Kind)
@@ -46,38 +38,29 @@ func CreateBackSyncer(ctx *synccontext.RegisterContext, config *config.SyncBack,
 
 	// TODO: [low priority] check if config.Kind + config.ApiVersion has status subresource
 	statusIsSubresource := true
-
-	//  |
-	//  |
-	//  |
-	//  |
-	// \|/
-	// TODO: TOP priority - initialize a name cache for the translations done in the syncBack patches and reversePatches
-	nc := parentNC
-
 	return &backSyncController{
 		NamespacedTranslator: translator.NewNamespacedTranslator(ctx, config.Kind+"-back-syncer", obj),
+		patcher: &patcher{
+			fromClient:          ctx.PhysicalManager.GetClient(),
+			toClient:            ctx.VirtualManager.GetClient(),
+			statusIsSubresource: statusIsSubresource,
+			log:                 log.New(config.Kind + "-back-syncer"),
+		},
 
-		options:             ctx.Options,
-		physicalClient:      ctx.PhysicalManager.GetClient(),
-		config:              config,
-		parentConfig:        parentConfig,
-		namecache:           nc,
-		parentNamecache:     parentNC,
-		statusIsSubresource: statusIsSubresource,
+		options:         ctx.Options,
+		config:          config,
+		parentNameCache: parentNC,
 	}, nil
 }
 
 type backSyncController struct {
 	translator.NamespacedTranslator
 
-	options             *synccontext.VirtualClusterOptions
-	physicalClient      client.Client
-	config              *config.SyncBack
-	parentConfig        *config.FromVirtualCluster
-	namecache           namecache.NameCache
-	parentNamecache     namecache.NameCache
-	statusIsSubresource bool
+	patcher *patcher
+
+	options         *synccontext.VirtualClusterOptions
+	config          *config.SyncBack
+	parentNameCache namecache.NameCache
 }
 
 var _ syncer.ControllerModifier = &backSyncController{}
@@ -86,7 +69,7 @@ func (b *backSyncController) ModifyController(ctx *synccontext.RegisterContext, 
 	// Setup a watch to receive a workqueue reference of the controller
 	// workqueue can then be used in the cache hooks to trigger a reconcile
 	// of this controller when a new entry for paths used by this syncer is added
-	return builder.Watches(b, &handler.EnqueueRequestForObject{}), nil
+	return builder.Watches(b, nil), nil
 }
 
 var _ syncer.Starter = &backSyncController{}
@@ -101,22 +84,20 @@ func (b *backSyncController) ReconcileStart(ctx *synccontext.SyncContext, req ct
 }
 
 func (b *backSyncController) SyncDown(ctx *synccontext.SyncContext, vObj client.Object) (ctrl.Result, error) {
+	ctx.Log.Infof("delete virtual %s/%s, because physical is missing, but virtual object exists", vObj.GetNamespace(), vObj.GetName())
+	err := ctx.VirtualClient.Delete(ctx.Context, vObj)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
 func (b *backSyncController) Sync(ctx *synccontext.SyncContext, pObj client.Object, vObj client.Object) (ctrl.Result, error) {
 	ctx.Log.Infof("Sync() for pObj %s / vObj %s/%s", pObj.GetName(), vObj.GetNamespace(), vObj.GetName())
 
-	// TODO: test Sync patches and reversePatches after solving a TODO regarding initialization of the b.namecache
-	// Execute patches on virtual object
-	updatedVObj := vObj.DeepCopyObject().(client.Object)
-	result, err := executeObjectPatch(ctx.Context, ctx.VirtualClient, updatedVObj, func() error {
-		err := patches.ApplyPatches(updatedVObj, pObj, b.config.Patches, nil, &hostToVirtualNameResolver{nameCache: b.namecache})
-		if err != nil {
-			return fmt.Errorf("error applying patches: %v", err)
-		}
-		return nil
-	})
+	// execute reverse patches
+	result, err := b.patcher.ApplyReversePatches(ctx.Context, pObj, vObj, b.config.ReversePatches, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
 	if err != nil {
 		if kerrors.IsInvalid(err) {
 			ctx.Log.Infof("Warning: this message could indicate a timing issue with no significant impact, or a bug. Please report this if your resource never reaches the expected state. Error message: failed to patch virtual %s %s/%s: %v", b.config.Kind, vObj.GetNamespace(), vObj.GetName(), err)
@@ -124,42 +105,35 @@ func (b *backSyncController) Sync(ctx *synccontext.SyncContext, pObj client.Obje
 			// it doesn't seem to have any negative consequence besides the logged error message
 			return ctrl.Result{Requeue: true}, nil
 		}
-		return ctrl.Result{}, fmt.Errorf("failed to patch virtual %s %s/%s: %v", b.config.Kind, vObj.GetNamespace(), vObj.GetName(), err)
-	}
-	if result == controllerutil.OperationResultUpdated || result == controllerutil.OperationResultUpdatedStatus || result == controllerutil.OperationResultUpdatedStatusOnly {
+
+		b.EventRecorder().Eventf(vObj, "Warning", "SyncError", "Error syncing to physical cluster: %v", err)
+		return ctrl.Result{}, fmt.Errorf("failed to patch physical %s %s/%s: %v", b.config.Kind, vObj.GetNamespace(), vObj.GetName(), err)
+	} else if result == controllerutil.OperationResultUpdated || result == controllerutil.OperationResultUpdatedStatus || result == controllerutil.OperationResultUpdatedStatusOnly {
 		// a change will trigger reconciliation anyway, and at that point we can make
 		// a more accurate updates(reverse patches) to the virtual resource
 		return ctrl.Result{}, nil
 	}
 
-	// Execute reverse patches on physical object
-	_, err = executeObjectPatch(ctx.Context, ctx.PhysicalClient, vObj, func() error {
-		err = patches.ApplyPatches(pObj, vObj, b.config.ReversePatches, nil, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
-		if err != nil {
-			return fmt.Errorf("error applying patches: %v", err)
-		}
-		return nil
-	})
+	// apply patches
+	_, err = b.patcher.ApplyPatches(ctx.Context, pObj, vObj, b.config.Patches, b.config.ReversePatches, func(obj client.Object) (client.Object, error) {
+		return b.translateMetadata(obj)
+	}, &hostToVirtualNameResolver{nameCache: b.parentNameCache})
 	if err != nil {
 		if kerrors.IsInvalid(err) {
-			ctx.Log.Infof("Warning: this message could indicate a timing issue with no significant impact, or a bug. Please report this if your resource never reaches the expected state. Error message: failed to patch physical %s %s/%s: %v", b.config.Kind, pObj.GetNamespace(), pObj.GetName(), err)
+			ctx.Log.Infof("Warning: this message could indicate a timing issue with no significant impact, or a bug. Please report this if your resource never reaches the expected state. Error message: failed to patch physical %s %s/%s: %v", b.config.Kind, vObj.GetNamespace(), vObj.GetName(), err)
 			// this happens when some field is being removed shortly after being added, which suggest it's a timing issue
 			// it doesn't seem to have any negative consequence besides the logged error message
 			return ctrl.Result{Requeue: true}, nil
 		}
-		return ctrl.Result{}, fmt.Errorf("failed to patch physical %s %s/%s: %v", b.config.Kind, pObj.GetNamespace(), pObj.GetName(), err)
+
+		b.EventRecorder().Eventf(vObj, "Warning", "SyncError", "Error syncing to virtual cluster: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error applying patches: %v", err)
 	}
 
 	// ensure that the annotation with virtual name and namespace is present on the physical object
 	if !b.containsBackSyncNameAnnotations(pObj) {
 		err := b.addAnnotationsToPhysicalObject(ctx, pObj, vObj)
 		if err != nil {
-			if kerrors.IsInvalid(err) {
-				ctx.Log.Infof("Warning: this message could indicate a timing issue with no significant impact, or a bug. Please report this if your resource never reaches the expected state. Error message: failed to patch virtual %s %s/%s: %v", b.config.Kind, pObj.GetNamespace(), pObj.GetName(), err)
-				// this happens when some field is being removed shortly after being added, which suggest it's a timing issue
-				// it doesn't seem to have any negative consequence besides the logged error message
-				return ctrl.Result{Requeue: true}, nil
-			}
 			return ctrl.Result{}, err
 		}
 	}
@@ -170,29 +144,15 @@ func (b *backSyncController) Sync(ctx *synccontext.SyncContext, pObj client.Obje
 var _ syncer.UpSyncer = &backSyncController{}
 
 func (b *backSyncController) SyncUp(ctx *synccontext.SyncContext, pObj client.Object) (ctrl.Result, error) {
-	vNN := b.PhysicalToVirtual(pObj)
-	newObj := pObj.DeepCopyObject().(client.Object)
-	newObj.SetResourceVersion("")
-	newObj.SetUID("")
-	newObj.SetManagedFields([]metav1.ManagedFieldsEntry{})
-	newObj.SetNamespace(vNN.Namespace)
-	newObj.SetName(vNN.Name)
-
-	err := patches.ApplyPatches(newObj, newObj, b.config.Patches, nil, &hostToVirtualNameResolver{nameCache: b.namecache})
+	// apply object to physical cluster
+	ctx.Log.Infof("Create virtual %s %s/%s, since it is missing, but physical object exists", b.config.Kind, pObj.GetNamespace(), pObj.GetName())
+	vObj, err := b.patcher.ApplyPatches(ctx.Context, pObj, nil, b.config.Patches, b.config.ReversePatches, b.translateMetadata, &hostToVirtualNameResolver{nameCache: b.parentNameCache})
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to apply declared patches to %s %s/%s: %v", b.config.Kind, newObj.GetNamespace(), newObj.GetName(), err)
-	}
-
-	ctx.Log.Infof("create virtual %s %s/%s", b.config.Kind, newObj.GetNamespace(), newObj.GetName())
-	err = ctx.VirtualClient.Create(ctx.Context, newObj)
-	if err != nil {
-		ctx.Log.Infof("error syncing %s %s/%s to virtual cluster: %v", b.config.Kind, newObj.GetNamespace(), newObj.GetName(), err)
-		b.EventRecorder().Eventf(newObj, "Warning", "SyncError", "Error syncing to virtual cluster: %v", err)
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("error applying patches: %v", err)
 	}
 
 	// add annotation with virtual name and namespace on the physical object
-	err = b.addAnnotationsToPhysicalObject(ctx, pObj, newObj)
+	err = b.addAnnotationsToPhysicalObject(ctx, pObj, vObj)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -200,22 +160,40 @@ func (b *backSyncController) SyncUp(ctx *synccontext.SyncContext, pObj client.Ob
 	return ctrl.Result{}, nil
 }
 
+func (b *backSyncController) translateMetadata(pObj client.Object) (client.Object, error) {
+	vNN := b.PhysicalToVirtual(pObj)
+	if vNN.Name == "" {
+		return nil, fmt.Errorf("couldn't translate %s/%s into virtual object", pObj.GetNamespace(), pObj.GetName())
+	}
+
+	newObj := pObj.DeepCopyObject().(client.Object)
+	translator.ResetObjectMetadata(newObj)
+	newObj.SetNamespace(vNN.Namespace)
+	newObj.SetName(vNN.Name)
+	annotations := newObj.GetAnnotations()
+	delete(annotations, translate.MarkerLabel)
+	delete(annotations, translator.NameAnnotation)
+	delete(annotations, translator.NamespaceAnnotation)
+	newObj.SetAnnotations(annotations)
+	return newObj, nil
+}
+
 func (b *backSyncController) IsManaged(pObj client.Object) (bool, error) {
 	return true, nil
 }
 
 func (b *backSyncController) VirtualToPhysical(req types.NamespacedName, _ client.Object) types.NamespacedName {
-	// TODO: consider creating a simple local map to cache these translations,
-	// it would be populated from the PhysicalToVirtual()
-
-	var n string
+	n := ""
 	for _, s := range b.config.Selectors {
 		if s.Name != nil {
-			n = b.parentNamecache.ResolveHostNamePath(req, s.Name.RewrittenPath)
+			if s.Name.RewrittenPath != "" {
+				n = b.parentNameCache.ResolveHostNamePath(req, s.Name.RewrittenPath)
+			} else {
+				n = b.parentNameCache.ResolveHostName(req)
+			}
 		}
 
 		// TODO: implement other selector types here
-
 		if n != "" {
 			return types.NamespacedName{
 				Namespace: b.options.TargetNamespace,
@@ -239,7 +217,11 @@ func (b *backSyncController) PhysicalToVirtual(pObj client.Object) types.Namespa
 	for _, s := range b.config.Selectors {
 		nn := types.NamespacedName{}
 		if s.Name != nil {
-			nn := b.parentNamecache.ResolveNamePath(pObj.GetName(), s.Name.RewrittenPath)
+			if s.Name.RewrittenPath != "" {
+				nn = b.parentNameCache.ResolveNamePath(pObj.GetName(), s.Name.RewrittenPath)
+			} else {
+				nn = b.parentNameCache.ResolveName(pObj.GetName())
+			}
 			if nn.Name == "" {
 				continue
 			}
@@ -247,7 +229,6 @@ func (b *backSyncController) PhysicalToVirtual(pObj client.Object) types.Namespa
 
 		// TODO: implement other selector types here
 		// if part of a selector does not match then we call `continue` to try different selector
-
 		if nn.Name != "" {
 			// if this selector matches then we don't evaluate other and return
 			return nn
@@ -263,20 +244,22 @@ func (b *backSyncController) Start(ctx context.Context, h handler.EventHandler, 
 	// setup the necessary name cache hooks
 	for _, s := range b.config.Selectors {
 		if s.Name != nil {
-			rewrittenPath := namecache.MetadataFieldPath
+			rewrittenPath := ""
 			if s.Name.RewrittenPath != "" {
 				rewrittenPath = s.Name.RewrittenPath
 			}
 
-			b.parentNamecache.AddChangeHook(namecache.IndexPhysicalToVirtualNamePath, func(name, key, value string) {
+			b.parentNameCache.AddChangeHook(namecache.IndexPhysicalToVirtualNamePath, func(name, key, value string) {
 				if name != "" {
-					// key is format NAMESPACE/NAME/PATH
+					// key is format PHYSICAL_NAME/PATH
 					splitted := strings.Split(key, "/")
 					path := strings.Join(splitted[2:], "/")
-					if path == rewrittenPath {
+					if rewrittenPath == "" || path == rewrittenPath {
+						// value is format NAMESPACE/NAME
+						namespaceName := strings.Split(value, "/")
 						q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
-							Namespace: splitted[0],
-							Name:      splitted[1],
+							Namespace: namespaceName[0],
+							Name:      namespaceName[1],
 						}})
 					}
 				}
@@ -289,161 +272,36 @@ func (b *backSyncController) Start(ctx context.Context, h handler.EventHandler, 
 }
 
 func (b *backSyncController) containsBackSyncNameAnnotations(obj client.Object) bool {
-	a := obj.GetAnnotations()
-	return a != nil && a[translate.MarkerLabel] == b.options.Name && a[translator.NameAnnotation] != "" && a[translator.NamespaceAnnotation] != ""
+	annotations := obj.GetAnnotations()
+	return annotations != nil && annotations[translate.MarkerLabel] == b.options.Name && annotations[translator.NameAnnotation] != "" && annotations[translator.NamespaceAnnotation] != ""
 }
 
 func (b *backSyncController) addAnnotationsToPhysicalObject(ctx *synccontext.SyncContext, pObj, vObj client.Object) error {
-	_, err := executeObjectPatch(ctx.Context, ctx.PhysicalClient, pObj, func() error {
-		annotations := pObj.GetAnnotations()
-		if annotations == nil {
-			annotations = map[string]string{}
-		}
-		annotations[translate.MarkerLabel] = b.options.Name
-		annotations[translator.NameAnnotation] = vObj.GetName()
-		annotations[translator.NamespaceAnnotation] = vObj.GetNamespace()
-		pObj.SetAnnotations(annotations)
+	originalObject := pObj.DeepCopyObject().(client.Object)
+	annotations := pObj.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	annotations[translate.MarkerLabel] = b.options.Name
+	annotations[translator.NameAnnotation] = vObj.GetName()
+	annotations[translator.NamespaceAnnotation] = vObj.GetNamespace()
+	pObj.SetAnnotations(annotations)
+
+	labels := pObj.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels[translate.ControllerLabel] = plugin.GetPluginName()
+	pObj.SetLabels(labels)
+
+	patch := client.MergeFrom(originalObject)
+	patchBytes, err := patch.Data(pObj)
+	if err != nil {
+		return err
+	} else if string(patchBytes) == "{}" {
 		return nil
-	})
-	return err
-}
-
-type MutateFn func() error
-
-func executeObjectPatch(ctx context.Context, c client.Client, obj client.Object, f MutateFn) (controllerutil.OperationResult, error) {
-	//TODO: we can simplify this function by a lot, aplly the reversePatches on the vObj, produce the json.Diff
-	// and then split the resulting diff into to two - changes to the status + all else
-	// Current implementation is based on controllerutil.CreateOrPatch
-
-	var updated, statusUpdated bool
-	statusIsSubresource := true // do we need to skip status subresource Patch on the resource that don't have status as subresource?
-
-	// Create a copy of the original object as well as converting that copy to
-	// unstructured data.
-	before, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.DeepCopyObject())
-	if err != nil {
-		return controllerutil.OperationResultNone, err
-	}
-	beforeWithStatus := make(map[string]interface{})
-	for k, v := range before {
-		beforeWithStatus[k] = v
 	}
 
-	// Attempt to extract the status from the resource for easier comparison later
-	beforeStatus, hasBeforeStatus, err := unstructured.NestedFieldCopy(before, "status")
-	if err != nil {
-		return controllerutil.OperationResultNone, err
-	}
-
-	// If the resource contains a status then remove it from the unstructured
-	// copy to avoid unnecessary patching later.
-	if hasBeforeStatus && statusIsSubresource {
-		unstructured.RemoveNestedField(before, "status")
-	}
-
-	// Mutate the original object.
-	err = f()
-	if err != nil {
-		return controllerutil.OperationResultNone, fmt.Errorf("failed to apply declared patches to %s %s/%s: %v", obj.GetObjectKind().GroupVersionKind().Kind, obj.GetNamespace(), obj.GetName(), err)
-	}
-
-	// Convert the resource to unstructured to compare against our before copy.
-	after, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-	if err != nil {
-		return controllerutil.OperationResultNone, err
-	}
-
-	// Attempt to extract the status from the resource for easier comparison later
-	afterStatus, hasAfterStatus, err := unstructured.NestedFieldCopy(after, "status")
-	if err != nil {
-		return controllerutil.OperationResultNone, err
-	}
-
-	// If the resource contains a status then remove it from the unstructured
-	// copy to avoid unnecessary patching later.
-	if hasAfterStatus && statusIsSubresource {
-		unstructured.RemoveNestedField(after, "status")
-	}
-
-	if !reflect.DeepEqual(before, after) {
-		// Only issue a Patch if the before and after resources (minus status) differ
-
-		patch, err := jsondiff.Compare(before, after)
-		if err != nil {
-			return controllerutil.OperationResultNone, err
-		}
-		patchBytes, err := json.Marshal(patch)
-		if err != nil {
-			return controllerutil.OperationResultNone, err
-		}
-
-		err = c.Patch(ctx, obj, client.RawPatch(types.JSONPatchType, patchBytes))
-		if err != nil {
-			return controllerutil.OperationResultNone, err
-		}
-		updated = true
-	}
-
-	if statusIsSubresource && (hasBeforeStatus || hasAfterStatus) && !reflect.DeepEqual(beforeStatus, afterStatus) {
-		// Only issue a Status Patch if the resource has a status and the beforeStatus
-		// and afterStatus copies differ
-		objectAfterPatch, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-		if err != nil {
-			if updated {
-				return controllerutil.OperationResultUpdated, err
-			} else {
-				return controllerutil.OperationResultNone, err
-			}
-		}
-		if err = unstructured.SetNestedField(objectAfterPatch, afterStatus, "status"); err != nil {
-			if updated {
-				return controllerutil.OperationResultUpdated, err
-			} else {
-				return controllerutil.OperationResultNone, err
-			}
-		}
-		// If Status was replaced by Patch before, restore patched structure to the obj
-		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(objectAfterPatch, obj); err != nil {
-			if updated {
-				return controllerutil.OperationResultUpdated, err
-			} else {
-				return controllerutil.OperationResultNone, err
-			}
-		}
-
-		statusPatch, err := jsondiff.Compare(beforeWithStatus, objectAfterPatch)
-		if err != nil {
-			if updated {
-				return controllerutil.OperationResultUpdated, err
-			} else {
-				return controllerutil.OperationResultNone, err
-			}
-		}
-		statusPatchBytes, err := json.Marshal(statusPatch)
-		if err != nil {
-			if updated {
-				return controllerutil.OperationResultUpdated, err
-			} else {
-				return controllerutil.OperationResultNone, err
-			}
-		}
-
-		if err := c.Status().Patch(ctx, obj, client.RawPatch(types.JSONPatchType, statusPatchBytes)); err != nil {
-			if updated {
-				return controllerutil.OperationResultUpdated, err
-			} else {
-				return controllerutil.OperationResultNone, err
-			}
-		}
-		statusUpdated = true
-	}
-	if updated && statusUpdated {
-		return controllerutil.OperationResultUpdatedStatus, nil
-	} else if updated && !statusUpdated {
-		return controllerutil.OperationResultUpdated, nil
-	} else if !updated && statusUpdated {
-		return controllerutil.OperationResultUpdatedStatusOnly, nil
-	} else {
-		return controllerutil.OperationResultNone, err
-	}
+	ctx.Log.Infof("Patch marker annotations on object")
+	return ctx.PhysicalClient.Patch(ctx.Context, pObj, patch)
 }

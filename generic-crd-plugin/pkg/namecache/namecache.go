@@ -22,6 +22,7 @@ const (
 const (
 	IndexPhysicalToVirtualName     = "indexphysicaltovirtualname"
 	IndexPhysicalToVirtualNamePath = "indexphysicaltovirtualnamepath"
+	IndexVirtualToPhysicalName     = "indexvirtualtophysicalname"
 	IndexVirtualToPhysicalNamePath = "indexvirtualtophysicalnamepath"
 )
 
@@ -31,6 +32,7 @@ type NameCache interface {
 	GetFirstByIndex(index, key string) string
 	ResolveName(hostName string) types.NamespacedName
 	ResolveNamePath(hostName string, path string) types.NamespacedName
+	ResolveHostName(virtualName types.NamespacedName) string
 	ResolveHostNamePath(virtualName types.NamespacedName, path string) string
 	AddChangeHook(index string, hookFunc HookFunc)
 }
@@ -165,6 +167,11 @@ func (n *nameCache) ResolveNamePath(hostName, fieldPath string) types.Namespaced
 	}
 
 	return StringToNamespacedName(value)
+}
+
+func (n *nameCache) ResolveHostName(virtualName types.NamespacedName) string {
+	vName := virtualName.Namespace + "/" + virtualName.Name
+	return n.GetFirstByIndex(IndexVirtualToPhysicalName, vName)
 }
 
 func (n *nameCache) ResolveHostNamePath(virtualName types.NamespacedName, fieldPath string) string {

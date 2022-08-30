@@ -383,3 +383,84 @@ fromHostCluster:
 # Mappe Host Objekt -> Virtuelles Objekt
 # Wenn Host Objekt existiert -> Create Virtuelles Objekt
 # Wenn Host Objekt nicht existiert -> Delete Virtuelles Object
+
+
+
+
+
+version: v1beta1
+mappings:
+  - fromVirtualCluster:
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      patches:
+        - op: rewriteName
+          path: metadata.annotations['cert-manager.io/issuer']
+        - op: rewriteName
+          path: spec.rules..http.paths..backend.service.name
+        - op: rewriteName
+          path: spec.rules..http.paths..backend.resource.name
+        - op: rewriteName
+          path: spec.tls..secretName
+          sync:
+            secret: true
+            configMap: true
+      reversePatches:
+        - op: copyFromObject
+          fromPath: status
+          path: status
+        - op: copyFromPath
+          fromPath: spec.ingressClassName
+          path: spec.ingressClassName
+          conditions:
+            - path: spec.ingressClassName
+              empty: true
+      syncBack:
+        - apiVersion: cert-manager.io/v1
+          kind: Certificate
+          selectors:
+            - name:
+                rewrittenPath: spec.tls..secretName
+        - apiVersion: v1
+          kind: Secret
+          selectors:
+            - name:
+                rewrittenPath: spec.tls..secretName
+        # Always add vcluster.loft.sh/controlled-by label to all synced back resources
+        # Always add a label to prevent fromVirtualCluster sync to all synced back resources
+  - fromVirtualCluster:
+      # CRD for the apiVersion+Kind is implicitly copied to the virtual cluster
+      apiVersion: cert-manager.io/v1
+      kind: Issuer
+      reversePatches:
+        - op: copyFromObject
+          fromPath: status
+          path: status
+  - fromVirtualCluster:
+      apiVersion: cert-manager.io/v1
+      kind: Certificate
+      patches:
+        - op: rewriteName
+          path: spec.issuerRef.name
+        - op: rewriteName
+          path: spec.secretName
+      reversePatches:
+        - op: copyFromObject
+          fromPath: status
+          path: status
+        - op: copyFromObject
+          fromPath: spec.issuerRef.name
+          path: metadata.annotations['test.loft.sh/issuerRefName']
+        - op: rewriteName
+          path: metadata.annotations['test.loft.sh/issuerRefName']
+      syncBack:
+        - kind: Secret
+          apiVersion: v1
+          selectors:
+            - name:
+                rewrittenPath: spec.secretName
+          patches:
+            - op: rewriteName
+              path: metadata.annotations['cert-manager.io/certificate-name']
+            - op: rewriteName
+              path: metadata.annotations['cert-manager.io/issuer-name']

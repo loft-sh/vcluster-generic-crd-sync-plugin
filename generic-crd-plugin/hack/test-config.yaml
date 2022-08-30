@@ -4,18 +4,18 @@ mappings:
       # CRD for the apiVersion+Kind is implicitly copied to the virtual cluster
       apiVersion: cert-manager.io/v1
       kind: Issuer
-      patches: []
-      reversePatches: []
+      reversePatches:
+        - op: copyFromObject
+          fromPath: status
+          path: status
   - fromVirtualCluster:
       apiVersion: cert-manager.io/v1
       kind: Certificate
-      # Virtual -> Host Cluster patches
       patches:
         - op: rewriteName
           path: spec.issuerRef.name
         - op: rewriteName
           path: spec.secretName
-      # Host -> Virtual Cluster patches
       reversePatches:
         - op: copyFromObject
           fromPath: status
@@ -25,21 +25,14 @@ mappings:
           path: metadata.annotations['test.loft.sh/issuerRefName']
         - op: rewriteName
           path: metadata.annotations['test.loft.sh/issuerRefName']
-          fromPath: spec.issuerRef.name
-      #syncBack:
-      #  - kind: Secret
-      #    apiVersion: v1
-      #    selectors:
-      #      - name:
-      #          rewrittenPath: spec.secretName
-          # Host -> Virtual Cluster patches
-      #    patches: []
-            # Implicit
-            # - op: rewriteName
-            #   path: metadata.name
-            #   from: metadata.name # Host name to virtual cluster name
-            # - op: rewriteNamespace
-            #   path: metadata.namespace
-            #   from: metadata.namespace # Host name to virtual cluster name
-          # Virtual -> Host Cluster patches
-      #    reversePatches: []
+      syncBack:
+        - kind: Secret
+          apiVersion: v1
+          selectors:
+            - name:
+                rewrittenPath: spec.secretName
+          patches:
+            - op: rewriteName
+              path: metadata.annotations['cert-manager.io/certificate-name']
+            - op: rewriteName
+              path: metadata.annotations['cert-manager.io/issuer-name']

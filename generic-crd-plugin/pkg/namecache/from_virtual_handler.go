@@ -56,6 +56,7 @@ func (c *fromVirtualClusterCacheHandler) mappingsFromVirtualObject(obj *unstruct
 	mappings := map[string]map[string]string{}
 	mappings[IndexPhysicalToVirtualName] = map[string]string{}
 	mappings[IndexPhysicalToVirtualNamePath] = map[string]string{}
+	mappings[IndexVirtualToPhysicalName] = map[string]string{}
 	mappings[IndexVirtualToPhysicalNamePath] = map[string]string{}
 
 	// add metadata.name mapping
@@ -95,5 +96,6 @@ func (c *fromVirtualClusterCacheHandler) mappingsFromVirtualObject(obj *unstruct
 func addSingleMapping(mappings map[string]map[string]string, virtualName, hostName, path string) {
 	mappings[IndexPhysicalToVirtualName][hostName] = virtualName
 	mappings[IndexPhysicalToVirtualNamePath][hostName+"/"+path] = virtualName
+	mappings[IndexVirtualToPhysicalName][virtualName] = hostName
 	mappings[IndexVirtualToPhysicalNamePath][virtualName+"/"+path] = hostName
 }

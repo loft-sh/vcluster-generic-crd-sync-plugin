@@ -37,15 +37,13 @@ func CreateFromVirtualSyncer(ctx *synccontext.RegisterContext, config *config.Fr
 	statusIsSubresource := true
 	// TODO: [low priority] check if config.Kind + config.ApiVersion has status subresource
 
-	namespacedTranslator := translator.NewNamespacedTranslator(ctx, config.Kind+"-from-virtual-syncer", obj)
 	return &fromVirtualController{
-		NamespacedTranslator: namespacedTranslator,
+		NamespacedTranslator: translator.NewNamespacedTranslator(ctx, config.Kind+"-from-virtual-syncer", obj),
 		patcher: &patcher{
 			fromClient:          ctx.VirtualManager.GetClient(),
 			toClient:            ctx.PhysicalManager.GetClient(),
 			statusIsSubresource: statusIsSubresource,
 			log:                 log.New(config.Kind + "-syncer"),
-			translateMetadata:   namespacedTranslator.TranslateMetadata,
 		},
 		config:    config,
 		nameCache: nc,
@@ -70,7 +68,10 @@ func (f *fromVirtualController) SyncDown(ctx *synccontext.SyncContext, vObj clie
 	}
 
 	// apply object to physical cluster
-	err := f.patcher.ApplyPatches(ctx.Context, vObj, nil, f.config.Patches, f.config.ReversePatches, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
+	ctx.Log.Infof("Create physical %s %s/%s, since it is missing, but virtual object exists", f.config.Kind, vObj.GetNamespace(), vObj.GetName())
+	_, err := f.patcher.ApplyPatches(ctx.Context, vObj, nil, f.config.Patches, f.config.ReversePatches, func(vObj client.Object) (client.Object, error) {
+		return f.TranslateMetadata(vObj), nil
+	}, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
 	if err != nil {
 		f.EventRecorder().Eventf(vObj, "Warning", "SyncError", "Error syncing to physical cluster: %v", err)
 		return ctrl.Result{}, fmt.Errorf("error applying patches: %v", err)
@@ -110,7 +111,9 @@ func (f *fromVirtualController) Sync(ctx *synccontext.SyncContext, pObj client.O
 	}
 
 	// apply patches
-	err = f.patcher.ApplyPatches(ctx.Context, vObj, pObj, f.config.Patches, f.config.ReversePatches, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
+	_, err = f.patcher.ApplyPatches(ctx.Context, vObj, pObj, f.config.Patches, f.config.ReversePatches, func(vObj client.Object) (client.Object, error) {
+		return f.TranslateMetadata(vObj), nil
+	}, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
 	if err != nil {
 		if kerrors.IsInvalid(err) {
 			ctx.Log.Infof("Warning: this message could indicate a timing issue with no significant impact, or a bug. Please report this if your resource never reaches the expected state. Error message: failed to patch physical %s %s/%s: %v", f.config.Kind, vObj.GetNamespace(), vObj.GetName(), err)

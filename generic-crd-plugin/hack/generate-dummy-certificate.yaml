@@ -11,5 +11,5 @@ spec:
   issuerRef:
     group: cert-manager.io
     kind: Issuer
-    name: selfsigned-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab
+    name: selfsigned
   secretName: sname1234
