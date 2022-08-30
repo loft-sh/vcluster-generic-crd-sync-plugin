@@ -24,7 +24,7 @@ func (c *fromVirtualClusterCacheHandler) OnAdd(obj interface{}) {
 		newMappings, err := c.mappingsFromVirtualObject(unstructuredObj, c.mapping)
 		if err == nil {
 			fmt.Println(unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName())
-			c.nameCache.exchangeMapping(&indexMappings{
+			c.nameCache.exchangeMapping(c.gvk, &indexMappings{
 				Name:     unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName(),
 				Mappings: newMappings,
 			})
@@ -37,7 +37,7 @@ func (c *fromVirtualClusterCacheHandler) OnUpdate(oldObj, newObj interface{}) {
 	if ok {
 		newMappings, err := c.mappingsFromVirtualObject(unstructuredObj, c.mapping)
 		if err == nil {
-			c.nameCache.exchangeMapping(&indexMappings{
+			c.nameCache.exchangeMapping(c.gvk, &indexMappings{
 				Name:     unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName(),
 				Mappings: newMappings,
 			})
@@ -48,7 +48,7 @@ func (c *fromVirtualClusterCacheHandler) OnUpdate(oldObj, newObj interface{}) {
 func (c *fromVirtualClusterCacheHandler) OnDelete(obj interface{}) {
 	unstructuredObj, ok := obj.(*unstructured.Unstructured)
 	if ok {
-		c.nameCache.removeMapping(unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName())
+		c.nameCache.removeMapping(c.gvk, unstructuredObj.GetNamespace()+"/"+unstructuredObj.GetName())
 	}
 }
 

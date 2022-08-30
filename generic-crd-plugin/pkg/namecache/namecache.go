@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	MappingAnnotation = "vcluster.loft.sh/name-mappings"
 	MetadataFieldPath = "metadata.name"
 )
 
@@ -29,15 +28,15 @@ const (
 type HookFunc func(name, key, value string)
 
 type NameCache interface {
-	GetFirstByIndex(index, key string) string
-	ResolveName(hostName string) types.NamespacedName
-	ResolveNamePath(hostName string, path string) types.NamespacedName
-	ResolveHostName(virtualName types.NamespacedName) string
-	ResolveHostNamePath(virtualName types.NamespacedName, path string) string
-	AddChangeHook(index string, hookFunc HookFunc)
+	GetFirstByIndex(gvk schema.GroupVersionKind, index, key string) string
+	ResolveName(gvk schema.GroupVersionKind, hostName string) types.NamespacedName
+	ResolveNamePath(gvk schema.GroupVersionKind, hostName string, path string) types.NamespacedName
+	ResolveHostName(gvk schema.GroupVersionKind, virtualName types.NamespacedName) string
+	ResolveHostNamePath(gvk schema.GroupVersionKind, virtualName types.NamespacedName, path string) string
+	AddChangeHook(gvk schema.GroupVersionKind, index string, hookFunc HookFunc)
 }
 
-func NewNameCache(ctx context.Context, manager ctrl.Manager, mapping *config.Mapping) (NameCache, error) {
+func NewNameCache(ctx context.Context, manager ctrl.Manager, mappings *config.Config) (NameCache, error) {
 	nc := &nameCache{
 		manager: manager,
 		indices: map[schema.GroupVersionKind]map[string]map[string][]*Object{},
@@ -45,39 +44,43 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mapping *config.Map
 		hooks:   map[schema.GroupVersionKind]map[string][]HookFunc{},
 	}
 
-	if mapping.FromVirtualCluster != nil {
-		// add informer to cache
-		gvk := schema.FromAPIVersionAndKind(mapping.FromVirtualCluster.ApiVersion, mapping.FromVirtualCluster.Kind)
+	for _, mapping := range mappings.Mappings {
+		if mapping.FromVirtualCluster != nil {
+			// add informer to cache
+			gvk := schema.FromAPIVersionAndKind(mapping.FromVirtualCluster.ApiVersion, mapping.FromVirtualCluster.Kind)
 
-		// check if there is at least 1 reverse patch that would use the cache
-		found := false
-		for _, p := range mapping.FromVirtualCluster.ReversePatches {
-			if p.Operation == config.PatchTypeRewriteName || p.Operation == config.PatchTypeRewriteNamespace {
-				found = true
-				break
+			// check if there is at least 1 reverse patch that would use the cache
+			found := false
+			for _, p := range mapping.FromVirtualCluster.ReversePatches {
+				if p.Operation == config.PatchTypeRewriteName || p.Operation == config.PatchTypeRewriteNamespace {
+					found = true
+					break
+				}
 			}
-		}
-		// TODO: add checks of syncBack - Phase 2
-		if !found {
-			return nc, nil
-		}
+			if len(mapping.FromVirtualCluster.SyncBack) > 0 {
+				found = true
+			}
+			if !found {
+				return nc, nil
+			}
 
-		// construct object and watch
-		obj := &unstructured.Unstructured{}
-		obj.SetAPIVersion(mapping.FromVirtualCluster.ApiVersion)
-		obj.SetKind(mapping.FromVirtualCluster.Kind)
-		informer, err := nc.manager.GetCache().GetInformer(ctx, obj)
-		if err != nil {
-			return nil, fmt.Errorf("get informer for %v: %v", gvk, err)
-		}
+			// construct object and watch
+			obj := &unstructured.Unstructured{}
+			obj.SetAPIVersion(mapping.FromVirtualCluster.ApiVersion)
+			obj.SetKind(mapping.FromVirtualCluster.Kind)
+			informer, err := nc.manager.GetCache().GetInformer(ctx, obj)
+			if err != nil {
+				return nil, fmt.Errorf("get informer for %v: %v", gvk, err)
+			}
 
-		informer.AddEventHandler(&fromVirtualClusterCacheHandler{
-			gvk:       gvk,
-			mapping:   mapping.FromVirtualCluster,
-			nameCache: nc,
-		})
-	} else {
-		return nil, fmt.Errorf("currently expects fromVirtualCluster to be defined")
+			informer.AddEventHandler(&fromVirtualClusterCacheHandler{
+				gvk:       gvk,
+				mapping:   mapping.FromVirtualCluster,
+				nameCache: nc,
+			})
+		} else {
+			return nil, fmt.Errorf("currently expects fromVirtualCluster to be defined")
+		}
 	}
 
 	return nc, nil
@@ -86,10 +89,6 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mapping *config.Map
 type nameCache struct {
 	manager ctrl.Manager
 	m       sync.Mutex
-
-	// TODO: gvk is currently a private member, in future we probably want to allow multiple
-	// gvk's the user then can choose from.
-	gvk schema.GroupVersionKind
 
 	// GVK -> Index -> Lookup Key -> Object
 	indices map[schema.GroupVersionKind]map[string]map[string][]*Object
@@ -142,8 +141,8 @@ func (n *nameCache) GetByIndex(gvk schema.GroupVersionKind, index, key string) [
 	return keysMap[key]
 }
 
-func (n *nameCache) GetFirstByIndex(index, key string) string {
-	objects := n.GetByIndex(n.gvk, index, key)
+func (n *nameCache) GetFirstByIndex(gvk schema.GroupVersionKind, index, key string) string {
+	objects := n.GetByIndex(gvk, index, key)
 	if len(objects) == 0 {
 		return ""
 	}
@@ -151,8 +150,8 @@ func (n *nameCache) GetFirstByIndex(index, key string) string {
 	return objects[0].Value
 }
 
-func (n *nameCache) ResolveName(hostName string) types.NamespacedName {
-	value := n.GetFirstByIndex(IndexPhysicalToVirtualName, hostName)
+func (n *nameCache) ResolveName(gvk schema.GroupVersionKind, hostName string) types.NamespacedName {
+	value := n.GetFirstByIndex(gvk, IndexPhysicalToVirtualName, hostName)
 	if value == "" {
 		return types.NamespacedName{}
 	}
@@ -160,8 +159,8 @@ func (n *nameCache) ResolveName(hostName string) types.NamespacedName {
 	return StringToNamespacedName(value)
 }
 
-func (n *nameCache) ResolveNamePath(hostName, fieldPath string) types.NamespacedName {
-	value := n.GetFirstByIndex(IndexPhysicalToVirtualNamePath, hostName+"/"+fieldPath)
+func (n *nameCache) ResolveNamePath(gvk schema.GroupVersionKind, hostName, fieldPath string) types.NamespacedName {
+	value := n.GetFirstByIndex(gvk, IndexPhysicalToVirtualNamePath, hostName+"/"+fieldPath)
 	if value == "" {
 		return types.NamespacedName{}
 	}
@@ -169,25 +168,24 @@ func (n *nameCache) ResolveNamePath(hostName, fieldPath string) types.Namespaced
 	return StringToNamespacedName(value)
 }
 
-func (n *nameCache) ResolveHostName(virtualName types.NamespacedName) string {
+func (n *nameCache) ResolveHostName(gvk schema.GroupVersionKind, virtualName types.NamespacedName) string {
 	vName := virtualName.Namespace + "/" + virtualName.Name
-	return n.GetFirstByIndex(IndexVirtualToPhysicalName, vName)
+	return n.GetFirstByIndex(gvk, IndexVirtualToPhysicalName, vName)
 }
 
-func (n *nameCache) ResolveHostNamePath(virtualName types.NamespacedName, fieldPath string) string {
+func (n *nameCache) ResolveHostNamePath(gvk schema.GroupVersionKind, virtualName types.NamespacedName, fieldPath string) string {
 	vName := virtualName.Namespace + "/" + virtualName.Name + "/" + fieldPath
-	return n.GetFirstByIndex(IndexVirtualToPhysicalNamePath, vName)
+	return n.GetFirstByIndex(gvk, IndexVirtualToPhysicalNamePath, vName)
 }
 
-func (n *nameCache) RemoveMapping(name string) {
+func (n *nameCache) RemoveMapping(gvk schema.GroupVersionKind, name string) {
 	n.m.Lock()
 	defer n.m.Unlock()
 
-	n.removeMapping(name)
+	n.removeMapping(gvk, name)
 }
 
-func (n *nameCache) removeMapping(name string) {
-	gvk := n.gvk
+func (n *nameCache) removeMapping(gvk schema.GroupVersionKind, name string) {
 	objectsMap, ok := n.objects[gvk]
 	if !ok || objectsMap == nil {
 		return
@@ -237,11 +235,10 @@ func (n *nameCache) removeMapping(name string) {
 	}
 }
 
-func (n *nameCache) exchangeMapping(object *indexMappings) {
+func (n *nameCache) exchangeMapping(gvk schema.GroupVersionKind, object *indexMappings) {
 	n.m.Lock()
 	defer n.m.Unlock()
 
-	gvk := n.gvk
 	if n.objects[gvk] == nil {
 		n.objects[gvk] = map[string]*indexMappings{}
 	}
@@ -251,7 +248,7 @@ func (n *nameCache) exchangeMapping(object *indexMappings) {
 		return
 	} else if ok {
 		// remove
-		n.removeMapping(object.Name)
+		n.removeMapping(gvk, object.Name)
 	}
 
 	// add
@@ -301,11 +298,10 @@ func (n *nameCache) executeHooks(gvk schema.GroupVersionKind, index string, name
 	}
 }
 
-func (n *nameCache) AddChangeHook(index string, hookFunc HookFunc) {
+func (n *nameCache) AddChangeHook(gvk schema.GroupVersionKind, index string, hookFunc HookFunc) {
 	n.m.Lock()
 	defer n.m.Unlock()
 
-	gvk := n.gvk
 	if n.hooks[gvk] == nil {
 		n.hooks[gvk] = map[string][]HookFunc{}
 	}

@@ -41,6 +41,12 @@ func main() {
 			klog.Warning("No mappings defined in the configuration")
 		}
 
+		// create a single name cache
+		nc, err := namecache.NewNameCache(registerCtx.Context, registerCtx.VirtualManager, &configuration)
+		if err != nil {
+			klog.Fatalf("Error seting up namecache for a mapping", err)
+		}
+
 		// TODO: efficiently sync all mapped CRDs from the host to vcluster or perhaps this should be a separate controller that will watch CRDs and sync changes
 		for _, m := range configuration.Mappings {
 			if m.FromVirtualCluster != nil {
@@ -49,11 +55,6 @@ func main() {
 					if err != nil {
 						klog.Fatalf("Error syncronizing CRD %s(%s) from the host cluster into vcluster: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
 					}
-				}
-
-				nc, err := namecache.NewNameCache(registerCtx.Context, registerCtx.VirtualManager, &m)
-				if err != nil {
-					klog.Fatalf("Error seting up namecache for a mapping", err)
 				}
 
 				s, err := syncer.CreateFromVirtualSyncer(registerCtx, m.FromVirtualCluster, nc)

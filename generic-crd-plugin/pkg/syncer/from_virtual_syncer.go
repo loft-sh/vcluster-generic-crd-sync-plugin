@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,6 +46,7 @@ func CreateFromVirtualSyncer(ctx *synccontext.RegisterContext, config *config.Fr
 			statusIsSubresource: statusIsSubresource,
 			log:                 log.New(config.Kind + "-syncer"),
 		},
+		gvk:       schema.FromAPIVersionAndKind(config.ApiVersion, config.Kind),
 		config:    config,
 		nameCache: nc,
 		selector:  selector,
@@ -55,6 +57,7 @@ type fromVirtualController struct {
 	translator.NamespacedTranslator
 
 	patcher *patcher
+	gvk     schema.GroupVersionKind
 
 	config    *config.FromVirtualCluster
 	nameCache namecache.NameCache
@@ -93,7 +96,7 @@ func (f *fromVirtualController) Sync(ctx *synccontext.SyncContext, pObj client.O
 	}
 
 	// apply reverse patches
-	result, err := f.patcher.ApplyReversePatches(ctx.Context, vObj, pObj, f.config.ReversePatches, &hostToVirtualNameResolver{nameCache: f.nameCache})
+	result, err := f.patcher.ApplyReversePatches(ctx.Context, vObj, pObj, f.config.ReversePatches, &hostToVirtualNameResolver{nameCache: f.nameCache, gvk: f.gvk})
 	if err != nil {
 		if kerrors.IsInvalid(err) {
 			ctx.Log.Infof("Warning: this message could indicate a timing issue with no significant impact, or a bug. Please report this if your resource never reaches the expected state. Error message: failed to patch virtual %s %s/%s: %v", f.config.Kind, vObj.GetNamespace(), vObj.GetName(), err)
@@ -142,15 +145,17 @@ func (r *virtualToHostNameResolver) TranslateName(name string, _ string) (string
 }
 
 type hostToVirtualNameResolver struct {
+	gvk schema.GroupVersionKind
+
 	nameCache namecache.NameCache
 }
 
 func (r *hostToVirtualNameResolver) TranslateName(name string, path string) (string, error) {
 	var n types.NamespacedName
 	if path == "" {
-		n = r.nameCache.ResolveName(name)
+		n = r.nameCache.ResolveName(r.gvk, name)
 	} else {
-		n = r.nameCache.ResolveNamePath(name, path)
+		n = r.nameCache.ResolveNamePath(r.gvk, name, path)
 	}
 	if n.Name == "" {
 		return "", fmt.Errorf("could not translate %s host resource name to vcluster resource name", name)

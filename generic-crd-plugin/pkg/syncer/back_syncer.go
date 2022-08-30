@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/plugin"
 	"github.com/loft-sh/vcluster-sdk/log"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"strings"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
@@ -47,6 +48,7 @@ func CreateBackSyncer(ctx *synccontext.RegisterContext, config *config.SyncBack,
 			log:                 log.New(config.Kind + "-back-syncer"),
 		},
 
+		parentGVK:       schema.FromAPIVersionAndKind(parentConfig.ApiVersion, parentConfig.Kind),
 		options:         ctx.Options,
 		config:          config,
 		parentNameCache: parentNC,
@@ -58,6 +60,7 @@ type backSyncController struct {
 
 	patcher *patcher
 
+	parentGVK       schema.GroupVersionKind
 	options         *synccontext.VirtualClusterOptions
 	config          *config.SyncBack
 	parentNameCache namecache.NameCache
@@ -117,7 +120,7 @@ func (b *backSyncController) Sync(ctx *synccontext.SyncContext, pObj client.Obje
 	// apply patches
 	_, err = b.patcher.ApplyPatches(ctx.Context, pObj, vObj, b.config.Patches, b.config.ReversePatches, func(obj client.Object) (client.Object, error) {
 		return b.translateMetadata(obj)
-	}, &hostToVirtualNameResolver{nameCache: b.parentNameCache})
+	}, &hostToVirtualNameResolver{nameCache: b.parentNameCache, gvk: b.parentGVK})
 	if err != nil {
 		if kerrors.IsInvalid(err) {
 			ctx.Log.Infof("Warning: this message could indicate a timing issue with no significant impact, or a bug. Please report this if your resource never reaches the expected state. Error message: failed to patch physical %s %s/%s: %v", b.config.Kind, vObj.GetNamespace(), vObj.GetName(), err)
@@ -146,7 +149,7 @@ var _ syncer.UpSyncer = &backSyncController{}
 func (b *backSyncController) SyncUp(ctx *synccontext.SyncContext, pObj client.Object) (ctrl.Result, error) {
 	// apply object to physical cluster
 	ctx.Log.Infof("Create virtual %s %s/%s, since it is missing, but physical object exists", b.config.Kind, pObj.GetNamespace(), pObj.GetName())
-	vObj, err := b.patcher.ApplyPatches(ctx.Context, pObj, nil, b.config.Patches, b.config.ReversePatches, b.translateMetadata, &hostToVirtualNameResolver{nameCache: b.parentNameCache})
+	vObj, err := b.patcher.ApplyPatches(ctx.Context, pObj, nil, b.config.Patches, b.config.ReversePatches, b.translateMetadata, &hostToVirtualNameResolver{nameCache: b.parentNameCache, gvk: b.parentGVK})
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error applying patches: %v", err)
 	}
@@ -187,9 +190,9 @@ func (b *backSyncController) VirtualToPhysical(req types.NamespacedName, _ clien
 	for _, s := range b.config.Selectors {
 		if s.Name != nil {
 			if s.Name.RewrittenPath != "" {
-				n = b.parentNameCache.ResolveHostNamePath(req, s.Name.RewrittenPath)
+				n = b.parentNameCache.ResolveHostNamePath(b.parentGVK, req, s.Name.RewrittenPath)
 			} else {
-				n = b.parentNameCache.ResolveHostName(req)
+				n = b.parentNameCache.ResolveHostName(b.parentGVK, req)
 			}
 		}
 
@@ -218,9 +221,9 @@ func (b *backSyncController) PhysicalToVirtual(pObj client.Object) types.Namespa
 		nn := types.NamespacedName{}
 		if s.Name != nil {
 			if s.Name.RewrittenPath != "" {
-				nn = b.parentNameCache.ResolveNamePath(pObj.GetName(), s.Name.RewrittenPath)
+				nn = b.parentNameCache.ResolveNamePath(b.parentGVK, pObj.GetName(), s.Name.RewrittenPath)
 			} else {
-				nn = b.parentNameCache.ResolveName(pObj.GetName())
+				nn = b.parentNameCache.ResolveName(b.parentGVK, pObj.GetName())
 			}
 			if nn.Name == "" {
 				continue
@@ -249,7 +252,7 @@ func (b *backSyncController) Start(ctx context.Context, h handler.EventHandler, 
 				rewrittenPath = s.Name.RewrittenPath
 			}
 
-			b.parentNameCache.AddChangeHook(namecache.IndexPhysicalToVirtualNamePath, func(name, key, value string) {
+			b.parentNameCache.AddChangeHook(b.parentGVK, namecache.IndexPhysicalToVirtualNamePath, func(name, key, value string) {
 				if name != "" {
 					// key is format PHYSICAL_NAME/PATH
 					splitted := strings.Split(key, "/")
