@@ -83,7 +83,33 @@ func (b *backSyncController) ReconcileStart(ctx *synccontext.SyncContext, req ct
 	// check that VirtualToPhysical won't return empty name to avoid failing here:
 	// https://github.com/loft-sh/vcluster-sdk/blob/d1087161ef718af44d08eb8771f6358fb5624265/syncer/syncer.go#L85
 	pNN := b.VirtualToPhysical(req.NamespacedName, nil)
-	return pNN.Name == "", nil
+	if pNN.Name == "" {
+		// make sure we delete the virtual object if it exists and is managed by us
+		vObj := b.Resource()
+		err := ctx.VirtualClient.Get(ctx.Context, types.NamespacedName{Namespace: req.Namespace, Name: req.Name}, vObj)
+		if err == nil {
+			labels := vObj.GetLabels()
+			if labels != nil && labels[controlledByLabel] == b.getControllerID() {
+				_, err := b.SyncDown(ctx, vObj)
+				return true, err
+			}
+		}
+
+		return true, nil
+	}
+	return false, nil
+}
+
+func (b *backSyncController) getControllerID() string {
+	if b.config.ID != "" {
+		return b.config.ID
+	}
+	return plugin.GetPluginName()
+}
+
+func (b *backSyncController) RegisterIndices(ctx *synccontext.RegisterContext) error {
+	// Don't register any indices as we don't need them anyways
+	return nil
 }
 
 func (b *backSyncController) SyncDown(ctx *synccontext.SyncContext, vObj client.Object) (ctrl.Result, error) {
@@ -97,7 +123,7 @@ func (b *backSyncController) SyncDown(ctx *synccontext.SyncContext, vObj client.
 }
 
 func (b *backSyncController) Sync(ctx *synccontext.SyncContext, pObj client.Object, vObj client.Object) (ctrl.Result, error) {
-	ctx.Log.Infof("Sync() for pObj %s / vObj %s/%s", pObj.GetName(), vObj.GetNamespace(), vObj.GetName())
+	//ctx.Log.Infof("Sync() for pObj %s / vObj %s/%s", pObj.GetName(), vObj.GetNamespace(), vObj.GetName())
 
 	// execute reverse patches
 	result, err := b.patcher.ApplyReversePatches(ctx.Context, pObj, vObj, b.config.ReversePatches, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
@@ -173,11 +199,22 @@ func (b *backSyncController) translateMetadata(pObj client.Object) (client.Objec
 	translator.ResetObjectMetadata(newObj)
 	newObj.SetNamespace(vNN.Namespace)
 	newObj.SetName(vNN.Name)
+
+	// set annotations
 	annotations := newObj.GetAnnotations()
 	delete(annotations, translate.MarkerLabel)
 	delete(annotations, translator.NameAnnotation)
 	delete(annotations, translator.NamespaceAnnotation)
 	newObj.SetAnnotations(annotations)
+
+	// set labels
+	labels := newObj.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels[controlledByLabel] = b.getControllerID()
+	newObj.SetLabels(labels)
+
 	return newObj, nil
 }
 
@@ -194,15 +231,15 @@ func (b *backSyncController) VirtualToPhysical(req types.NamespacedName, _ clien
 			} else {
 				n = b.parentNameCache.ResolveHostName(b.parentGVK, req)
 			}
+			if n != "" {
+				return types.NamespacedName{
+					Namespace: b.options.TargetNamespace,
+					Name:      n,
+				}
+			}
 		}
 
 		// TODO: implement other selector types here
-		if n != "" {
-			return types.NamespacedName{
-				Namespace: b.options.TargetNamespace,
-				Name:      n,
-			}
-		}
 	}
 
 	return types.NamespacedName{}
@@ -289,13 +326,6 @@ func (b *backSyncController) addAnnotationsToPhysicalObject(ctx *synccontext.Syn
 	annotations[translator.NameAnnotation] = vObj.GetName()
 	annotations[translator.NamespaceAnnotation] = vObj.GetNamespace()
 	pObj.SetAnnotations(annotations)
-
-	labels := pObj.GetLabels()
-	if labels == nil {
-		labels = map[string]string{}
-	}
-	labels[translate.ControllerLabel] = plugin.GetPluginName()
-	pObj.SetLabels(labels)
 
 	patch := client.MergeFrom(originalObject)
 	patchBytes, err := patch.Data(pObj)

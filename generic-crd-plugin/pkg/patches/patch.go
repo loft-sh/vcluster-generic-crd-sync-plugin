@@ -67,8 +67,6 @@ func ApplyPatches(obj1, obj2 client.Object, patchesConf []*config.Patch, reverse
 func applyPatch(obj1, obj2 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
 	if patch.Operation == config.PatchTypeRewriteName {
 		return RewriteName(obj1, patch, resolver)
-	} else if patch.Operation == config.PatchTypeRewriteNamespace {
-		return RewriteNamespace(obj1, patch, resolver)
 	} else if patch.Operation == config.PatchTypeReplace {
 		return Replace(obj1, patch)
 	} else if patch.Operation == config.PatchTypeRemove {

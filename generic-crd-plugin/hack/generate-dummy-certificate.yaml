@@ -2,7 +2,6 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: dummy-certificate
-  namespace: default
   labels:
     test: first
 spec:

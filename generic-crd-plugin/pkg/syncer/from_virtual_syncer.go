@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/namecache"
+	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/plugin"
 	"github.com/loft-sh/vcluster-sdk/log"
 	"github.com/loft-sh/vcluster-sdk/syncer"
 	synccontext "github.com/loft-sh/vcluster-sdk/syncer/context"
@@ -44,7 +45,7 @@ func CreateFromVirtualSyncer(ctx *synccontext.RegisterContext, config *config.Fr
 			fromClient:          ctx.VirtualManager.GetClient(),
 			toClient:            ctx.PhysicalManager.GetClient(),
 			statusIsSubresource: statusIsSubresource,
-			log:                 log.New(config.Kind + "-syncer"),
+			log:                 log.New(config.Kind + "-from-virtual-syncer"),
 		},
 		gvk:       schema.FromAPIVersionAndKind(config.ApiVersion, config.Kind),
 		config:    config,
@@ -66,7 +67,7 @@ type fromVirtualController struct {
 
 func (f *fromVirtualController) SyncDown(ctx *synccontext.SyncContext, vObj client.Object) (ctrl.Result, error) {
 	// check if selector matches
-	if !f.objectMatches(vObj) {
+	if f.isExcluded(vObj) || !f.objectMatches(vObj) {
 		return ctrl.Result{}, nil
 	}
 
@@ -84,7 +85,9 @@ func (f *fromVirtualController) SyncDown(ctx *synccontext.SyncContext, vObj clie
 }
 
 func (f *fromVirtualController) Sync(ctx *synccontext.SyncContext, pObj client.Object, vObj client.Object) (ctrl.Result, error) {
-	if !f.objectMatches(vObj) {
+	if f.isExcluded(vObj) {
+		return ctrl.Result{}, nil
+	} else if !f.objectMatches(vObj) {
 		ctx.Log.Infof("delete physical %s %s/%s, because it is not used anymore", f.config.Kind, pObj.GetNamespace(), pObj.GetName())
 		err := ctx.PhysicalClient.Delete(ctx.Context, pObj)
 		if err != nil {
@@ -130,6 +133,37 @@ func (f *fromVirtualController) Sync(ctx *synccontext.SyncContext, pObj client.O
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (f *fromVirtualController) getControllerID() string {
+	if f.config.ID != "" {
+		return f.config.ID
+	}
+	return plugin.GetPluginName()
+}
+
+func (f *fromVirtualController) TranslateMetadata(vObj client.Object) client.Object {
+	pObj := f.NamespacedTranslator.TranslateMetadata(vObj)
+	labels := pObj.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels[controlledByLabel] = f.getControllerID()
+	pObj.SetLabels(labels)
+	return pObj
+}
+
+func (f *fromVirtualController) IsManaged(pObj client.Object) (bool, error) {
+	if !translate.IsManaged(pObj) {
+		return false, nil
+	}
+
+	labels := pObj.GetLabels()
+	return labels != nil && labels[controlledByLabel] == f.getControllerID(), nil
+}
+
+func (f *fromVirtualController) isExcluded(obj client.Object) bool {
+	return obj.GetLabels() != nil && obj.GetLabels()[controlledByLabel] != ""
 }
 
 func (f *fromVirtualController) objectMatches(obj client.Object) bool {

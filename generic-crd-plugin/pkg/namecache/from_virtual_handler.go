@@ -64,7 +64,7 @@ func (c *fromVirtualClusterCacheHandler) mappingsFromVirtualObject(obj *unstruct
 
 	// TODO add explicit name caches?
 	for _, p := range mappingConfig.Patches {
-		if p.Operation != config.PatchTypeRewriteName && p.Operation != config.PatchTypeRewriteNamespace {
+		if p.Operation != config.PatchTypeRewriteName {
 			continue
 		}
 

@@ -21,6 +21,10 @@ type Mapping struct {
 type SyncBase struct {
 	TypeInformation `yaml:",inline" json:",inline"`
 
+	// ID is the id of the controller. This is optional and only necessary if you have multiple syncBack or fromVirtualSyncer
+	// controllers that target the same group version kind.
+	ID string `yaml:"name,omitempty" json:"name,omitempty"`
+
 	// Patches are the patches to apply on the virtual cluster objects
 	// when syncing them from the host cluster
 	Patches []*Patch `yaml:"patches,omitempty" json:"patches,omitempty"`
@@ -127,12 +131,11 @@ type Patch struct {
 type PatchType string
 
 const (
-	PatchTypeRewriteName      = "rewriteName"
-	PatchTypeRewriteNamespace = "rewriteNamespace"
-	PatchTypeCopyFromObject   = "copyFromObject"
-	PatchTypeAdd              = "add"
-	PatchTypeReplace          = "replace"
-	PatchTypeRemove           = "remove"
+	PatchTypeRewriteName    = "rewriteName"
+	PatchTypeCopyFromObject = "copyFromObject"
+	PatchTypeAdd            = "add"
+	PatchTypeReplace        = "replace"
+	PatchTypeRemove         = "remove"
 )
 
 type PatchCondition struct {

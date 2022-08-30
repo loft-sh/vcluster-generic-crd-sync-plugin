@@ -52,7 +52,7 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mappings *config.Co
 			// check if there is at least 1 reverse patch that would use the cache
 			found := false
 			for _, p := range mapping.FromVirtualCluster.ReversePatches {
-				if p.Operation == config.PatchTypeRewriteName || p.Operation == config.PatchTypeRewriteNamespace {
+				if p.Operation == config.PatchTypeRewriteName {
 					found = true
 					break
 				}
@@ -61,7 +61,7 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mappings *config.Co
 				found = true
 			}
 			if !found {
-				return nc, nil
+				continue
 			}
 
 			// construct object and watch
