@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/plugin"
 	"github.com/loft-sh/vcluster-sdk/log"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"strings"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
@@ -80,8 +82,7 @@ type backSyncController struct {
 	options   *synccontext.VirtualClusterOptions
 	config    *config.SyncBack
 
-	virtualToPhysicalCache namecache.NameCache
-	parentNameCache        namecache.NameCache
+	parentNameCache namecache.NameCache
 
 	targetNamespace string
 	physicalClient  client.Client
@@ -117,13 +118,45 @@ func (b *backSyncController) resource() client.Object {
 
 func (b *backSyncController) Register(ctx *synccontext.RegisterContext) error {
 	maxConcurrentReconciles := 1
-
 	controller := ctrl.NewControllerManagedBy(ctx.PhysicalManager).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: maxConcurrentReconciles,
 		}).
 		Named(b.Name()).
-		Watches(source.NewKindWithCache(b.resource(), ctx.VirtualManager.GetCache()), b).
+		Watches(source.NewKindWithCache(b.resource(), ctx.VirtualManager.GetCache()), &handler.Funcs{
+			CreateFunc: func(event event.CreateEvent, limitingInterface workqueue.RateLimitingInterface) {
+				b.enqueueVirtual(event.Object, limitingInterface, false)
+			},
+			UpdateFunc: func(event event.UpdateEvent, limitingInterface workqueue.RateLimitingInterface) {
+				b.enqueueVirtual(event.ObjectNew, limitingInterface, false)
+			},
+			DeleteFunc: func(event event.DeleteEvent, limitingInterface workqueue.RateLimitingInterface) {
+				b.enqueueVirtual(event.Object, limitingInterface, true)
+			},
+			GenericFunc: func(event event.GenericEvent, limitingInterface workqueue.RateLimitingInterface) {
+				b.enqueueVirtual(event.Object, limitingInterface, false)
+			},
+		}).
+		Watches(&source.Kind{Type: b.resource()}, &handler.Funcs{
+			DeleteFunc: func(event event.DeleteEvent, limitingInterface workqueue.RateLimitingInterface) {
+				// delete virtual resource. Would be nicer to have this part of the controller, but
+				// it works for now.
+				virtualName := b.PhysicalToVirtual(types.NamespacedName{
+					Namespace: event.Object.GetNamespace(),
+					Name:      event.Object.GetName(),
+				}, event.Object)
+				if virtualName.String() != "" {
+					vObj := b.resource()
+					err := b.virtualClient.Get(context.Background(), virtualName, vObj)
+					if err == nil {
+						err = b.deleteVirtualObject(ctx.Context, vObj, b.log)
+						if err != nil {
+							b.log.Errorf("error deleting virtual object %s/%s: %v", vObj.GetNamespace(), vObj.GetName(), err)
+						}
+					}
+				}
+			},
+		}).
 		Watches(b, nil).
 		For(b.resource())
 	return controller.Complete(b)
@@ -194,17 +227,20 @@ func (b *backSyncController) isExcluded(vObj client.Object) bool {
 }
 
 func (b *backSyncController) syncDown(ctx *synccontext.SyncContext, vObj client.Object) (ctrl.Result, error) {
+	return ctrl.Result{}, b.deleteVirtualObject(ctx.Context, vObj, ctx.Log)
+}
+
+func (b *backSyncController) deleteVirtualObject(ctx context.Context, vObj client.Object, log log.Logger) error {
 	if b.isExcluded(vObj) {
-		return ctrl.Result{}, nil
+		return nil
 	}
 
-	ctx.Log.Infof("delete virtual %s/%s, because physical is missing, but virtual object exists", vObj.GetNamespace(), vObj.GetName())
-	err := ctx.VirtualClient.Delete(ctx.Context, vObj)
-	if err != nil {
-		return ctrl.Result{}, err
+	log.Infof("delete virtual %s/%s, because physical is missing, but virtual object exists", vObj.GetNamespace(), vObj.GetName())
+	err := b.virtualClient.Delete(ctx, vObj)
+	if err != nil && !kerrors.IsNotFound(err) {
+		return err
 	}
-
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (b *backSyncController) sync(ctx *synccontext.SyncContext, pObj client.Object, vObj client.Object) (ctrl.Result, error) {
@@ -457,6 +493,45 @@ func (b *backSyncController) addAnnotationsToPhysicalObject(ctx *synccontext.Syn
 
 	ctx.Log.Infof("Patch marker annotations on object")
 	return ctx.PhysicalClient.Patch(ctx.Context, pObj, patch)
+}
+
+func (b *backSyncController) enqueueVirtual(obj client.Object, q workqueue.RateLimitingInterface, isDelete bool) {
+	if obj == nil {
+		return
+	} else if b.isExcluded(obj) {
+		return
+	}
+
+	list := &unstructured.UnstructuredList{}
+	list.SetKind(b.config.Kind + "List")
+	list.SetAPIVersion(b.config.ApiVersion)
+	err := b.physicalClient.List(context.Background(), list, client.MatchingFields{IndexByVirtualName: obj.GetNamespace() + "/" + obj.GetName()})
+	if err != nil {
+		b.log.Errorf("error listing %s for virtual to physical name translation: %v", b.config.Kind, err)
+		return
+	}
+
+	objs, err := meta.ExtractList(list)
+	if err != nil {
+		b.log.Errorf("error extracting list %s for virtual to physical name translation: %v", b.config.Kind, err)
+		return
+	} else if len(objs) == 0 {
+		if !isDelete {
+			b.log.Infof("delete virtual %s/%s, because physical is missing, but virtual object exists", obj.GetNamespace(), obj.GetName())
+			err := b.virtualClient.Delete(context.Background(), obj)
+			if err != nil && !kerrors.IsNotFound(err) {
+				b.log.Errorf("error deleting virtual %s/%s: %v", obj.GetNamespace(), obj.GetName(), err)
+				return
+			}
+		}
+		return
+	}
+
+	pObj := objs[0].(client.Object)
+	q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
+		Namespace: pObj.GetNamespace(),
+		Name:      pObj.GetName(),
+	}})
 }
 
 type memorizingHostToVirtualNameResolver struct {
