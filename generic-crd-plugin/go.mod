@@ -4,11 +4,9 @@ go 1.18
 
 require (
 	github.com/ghodss/yaml v1.0.0
-	github.com/loft-sh/vcluster-sdk v0.3.0
+	github.com/loft-sh/vcluster-sdk v0.3.1
 	github.com/pkg/errors v0.9.1
 	github.com/vmware-labs/yaml-jsonpath v0.3.2
-	github.com/wI2L/jsondiff v0.2.0
-	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	gotest.tools v2.2.0+incompatible
 	k8s.io/apimachinery v0.24.2
@@ -75,9 +73,6 @@ require (
 	github.com/spf13/cobra v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.7.1 // indirect
-	github.com/tidwall/gjson v1.14.0 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
@@ -92,6 +87,7 @@ require (
 	google.golang.org/grpc v1.43.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/api v0.24.2 // indirect
 	k8s.io/apiextensions-apiserver v0.24.2 // indirect
 	k8s.io/cli-runtime v0.24.2 // indirect

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/blockingcacheclient"
 	"os"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
@@ -18,7 +19,9 @@ const (
 
 func main() {
 	// init plugin
-	registerCtx, err := plugin.Init()
+	registerCtx, err := plugin.InitWithOptions(plugin.Options{
+		NewClient: blockingcacheclient.NewCacheClient,
+	})
 	if err != nil {
 		klog.Fatalf("Error initializing plugin: %v", err)
 	}

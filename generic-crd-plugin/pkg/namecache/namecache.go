@@ -21,8 +21,6 @@ const (
 const (
 	IndexPhysicalToVirtualName     = "indexphysicaltovirtualname"
 	IndexPhysicalToVirtualNamePath = "indexphysicaltovirtualnamepath"
-	IndexVirtualToPhysicalName     = "indexvirtualtophysicalname"
-	IndexVirtualToPhysicalNamePath = "indexvirtualtophysicalnamepath"
 )
 
 type HookFunc func(name, key, value string)
@@ -31,16 +29,16 @@ type NameCache interface {
 	GetFirstByIndex(gvk schema.GroupVersionKind, index, key string) string
 	ResolveName(gvk schema.GroupVersionKind, hostName string) types.NamespacedName
 	ResolveNamePath(gvk schema.GroupVersionKind, hostName string, path string) types.NamespacedName
-	ResolveHostName(gvk schema.GroupVersionKind, virtualName types.NamespacedName) string
-	ResolveHostNamePath(gvk schema.GroupVersionKind, virtualName types.NamespacedName, path string) string
 	AddChangeHook(gvk schema.GroupVersionKind, index string, hookFunc HookFunc)
+
+	ExchangeMapping(gvk schema.GroupVersionKind, object *IndexMappings)
+	RemoveMapping(gvk schema.GroupVersionKind, name string)
 }
 
 func NewNameCache(ctx context.Context, manager ctrl.Manager, mappings *config.Config) (NameCache, error) {
 	nc := &nameCache{
-		manager: manager,
 		indices: map[schema.GroupVersionKind]map[string]map[string][]*Object{},
-		objects: map[schema.GroupVersionKind]map[string]*indexMappings{},
+		objects: map[schema.GroupVersionKind]map[string]*IndexMappings{},
 		hooks:   map[schema.GroupVersionKind]map[string][]HookFunc{},
 	}
 
@@ -68,7 +66,7 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mappings *config.Co
 			obj := &unstructured.Unstructured{}
 			obj.SetAPIVersion(mapping.FromVirtualCluster.ApiVersion)
 			obj.SetKind(mapping.FromVirtualCluster.Kind)
-			informer, err := nc.manager.GetCache().GetInformer(ctx, obj)
+			informer, err := manager.GetCache().GetInformer(ctx, obj)
 			if err != nil {
 				return nil, fmt.Errorf("get informer for %v: %v", gvk, err)
 			}
@@ -87,13 +85,12 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mappings *config.Co
 }
 
 type nameCache struct {
-	manager ctrl.Manager
-	m       sync.Mutex
+	m sync.Mutex
 
 	// GVK -> Index -> Lookup Key -> Object
 	indices map[schema.GroupVersionKind]map[string]map[string][]*Object
 	// GVK -> Name -> Mappings
-	objects map[schema.GroupVersionKind]map[string]*indexMappings
+	objects map[schema.GroupVersionKind]map[string]*IndexMappings
 	// GVK -> Index -> Hooks
 	hooks map[schema.GroupVersionKind]map[string][]HookFunc
 }
@@ -106,7 +103,7 @@ type Object struct {
 	Value string
 }
 
-type indexMappings struct {
+type IndexMappings struct {
 	// Name of the object this mapping was retrieved from
 	Name string
 
@@ -168,16 +165,6 @@ func (n *nameCache) ResolveNamePath(gvk schema.GroupVersionKind, hostName, field
 	return StringToNamespacedName(value)
 }
 
-func (n *nameCache) ResolveHostName(gvk schema.GroupVersionKind, virtualName types.NamespacedName) string {
-	vName := virtualName.Namespace + "/" + virtualName.Name
-	return n.GetFirstByIndex(gvk, IndexVirtualToPhysicalName, vName)
-}
-
-func (n *nameCache) ResolveHostNamePath(gvk schema.GroupVersionKind, virtualName types.NamespacedName, fieldPath string) string {
-	vName := virtualName.Namespace + "/" + virtualName.Name + "/" + fieldPath
-	return n.GetFirstByIndex(gvk, IndexVirtualToPhysicalNamePath, vName)
-}
-
 func (n *nameCache) RemoveMapping(gvk schema.GroupVersionKind, name string) {
 	n.m.Lock()
 	defer n.m.Unlock()
@@ -235,12 +222,12 @@ func (n *nameCache) removeMapping(gvk schema.GroupVersionKind, name string) {
 	}
 }
 
-func (n *nameCache) exchangeMapping(gvk schema.GroupVersionKind, object *indexMappings) {
+func (n *nameCache) ExchangeMapping(gvk schema.GroupVersionKind, object *IndexMappings) {
 	n.m.Lock()
 	defer n.m.Unlock()
 
 	if n.objects[gvk] == nil {
-		n.objects[gvk] = map[string]*indexMappings{}
+		n.objects[gvk] = map[string]*IndexMappings{}
 	}
 
 	oldObject, ok := n.objects[gvk][object.Name]

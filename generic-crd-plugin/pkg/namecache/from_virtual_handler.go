@@ -24,7 +24,7 @@ func (c *fromVirtualClusterCacheHandler) OnAdd(obj interface{}) {
 		newMappings, err := c.mappingsFromVirtualObject(unstructuredObj, c.mapping)
 		if err == nil {
 			fmt.Println(unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName())
-			c.nameCache.exchangeMapping(c.gvk, &indexMappings{
+			c.nameCache.ExchangeMapping(c.gvk, &IndexMappings{
 				Name:     unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName(),
 				Mappings: newMappings,
 			})
@@ -37,7 +37,7 @@ func (c *fromVirtualClusterCacheHandler) OnUpdate(oldObj, newObj interface{}) {
 	if ok {
 		newMappings, err := c.mappingsFromVirtualObject(unstructuredObj, c.mapping)
 		if err == nil {
-			c.nameCache.exchangeMapping(c.gvk, &indexMappings{
+			c.nameCache.ExchangeMapping(c.gvk, &IndexMappings{
 				Name:     unstructuredObj.GetNamespace() + "/" + unstructuredObj.GetName(),
 				Mappings: newMappings,
 			})
@@ -48,7 +48,7 @@ func (c *fromVirtualClusterCacheHandler) OnUpdate(oldObj, newObj interface{}) {
 func (c *fromVirtualClusterCacheHandler) OnDelete(obj interface{}) {
 	unstructuredObj, ok := obj.(*unstructured.Unstructured)
 	if ok {
-		c.nameCache.removeMapping(c.gvk, unstructuredObj.GetNamespace()+"/"+unstructuredObj.GetName())
+		c.nameCache.RemoveMapping(c.gvk, unstructuredObj.GetNamespace()+"/"+unstructuredObj.GetName())
 	}
 }
 
@@ -56,8 +56,6 @@ func (c *fromVirtualClusterCacheHandler) mappingsFromVirtualObject(obj *unstruct
 	mappings := map[string]map[string]string{}
 	mappings[IndexPhysicalToVirtualName] = map[string]string{}
 	mappings[IndexPhysicalToVirtualNamePath] = map[string]string{}
-	mappings[IndexVirtualToPhysicalName] = map[string]string{}
-	mappings[IndexVirtualToPhysicalNamePath] = map[string]string{}
 
 	// add metadata.name mapping
 	addSingleMapping(mappings, obj.GetNamespace()+"/"+obj.GetName(), translate.PhysicalName(obj.GetName(), obj.GetNamespace()), MetadataFieldPath)
@@ -96,6 +94,4 @@ func (c *fromVirtualClusterCacheHandler) mappingsFromVirtualObject(obj *unstruct
 func addSingleMapping(mappings map[string]map[string]string, virtualName, hostName, path string) {
 	mappings[IndexPhysicalToVirtualName][hostName] = virtualName
 	mappings[IndexPhysicalToVirtualNamePath][hostName+"/"+path] = virtualName
-	mappings[IndexVirtualToPhysicalName][virtualName] = hostName
-	mappings[IndexVirtualToPhysicalNamePath][virtualName+"/"+path] = hostName
 }
