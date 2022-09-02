@@ -192,6 +192,39 @@ type virtualToHostNameResolver struct {
 func (r *virtualToHostNameResolver) TranslateName(name string, _ string) (string, error) {
 	return translate.PhysicalName(name, r.namespace), nil
 }
+func (r *virtualToHostNameResolver) TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error) {
+	if selector != nil {
+		if selector.MatchLabels == nil {
+			selector.MatchLabels = map[string]string{}
+		}
+		for k, v := range selector.MatchLabels {
+			selector.MatchLabels[translator.ConvertLabelKey(k)] = v
+		}
+		if len(selector.MatchExpressions) > 0 {
+			selector.MatchExpressions = []metav1.LabelSelectorRequirement{}
+			for i, r := range selector.MatchExpressions {
+				selector.MatchExpressions[i] = metav1.LabelSelectorRequirement{
+					Key:      translator.ConvertLabelKey(r.Key),
+					Operator: r.Operator,
+					Values:   r.Values,
+				}
+			}
+		}
+		selector.MatchLabels[translate.NamespaceLabel] = r.namespace
+		selector.MatchLabels[translate.MarkerLabel] = translate.Suffix
+	}
+	return selector, nil
+}
+func (r *virtualToHostNameResolver) TranslateLabelSelector(selector map[string]string) (map[string]string, error) {
+	if selector != nil {
+		for k, v := range selector {
+			selector[translator.ConvertLabelKey(k)] = v
+		}
+		selector[translate.NamespaceLabel] = r.namespace
+		selector[translate.MarkerLabel] = translate.Suffix
+	}
+	return selector, nil
+}
 
 type hostToVirtualNameResolver struct {
 	gvk schema.GroupVersionKind
@@ -211,4 +244,10 @@ func (r *hostToVirtualNameResolver) TranslateName(name string, path string) (str
 	}
 
 	return n.Name, nil
+}
+func (r *hostToVirtualNameResolver) TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error) {
+	return nil, fmt.Errorf("translation not supported from host to virtual object")
+}
+func (r *hostToVirtualNameResolver) TranslateLabelSelector(selector map[string]string) (map[string]string, error) {
+	return nil, fmt.Errorf("translation not supported from host to virtual object")
 }

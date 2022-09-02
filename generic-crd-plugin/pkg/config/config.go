@@ -131,7 +131,10 @@ type Patch struct {
 type PatchType string
 
 const (
-	PatchTypeRewriteName    = "rewriteName"
+	PatchTypeRewriteName                     = "rewriteName"
+	PatchTypeRewriteLabelSelector            = "rewriteLabelSelector"
+	PatchTypeRewriteLabelExpressionsSelector = "rewriteLabelExpressionsSelector"
+
 	PatchTypeCopyFromObject = "copyFromObject"
 	PatchTypeAdd            = "add"
 	PatchTypeReplace        = "replace"

@@ -3,6 +3,7 @@ package patches
 import (
 	"encoding/json"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	jsonyaml "github.com/ghodss/yaml"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
@@ -13,6 +14,8 @@ import (
 
 type NameResolver interface {
 	TranslateName(name string, path string) (string, error)
+	TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error)
+	TranslateLabelSelector(selector map[string]string) (map[string]string, error)
 }
 
 func ApplyPatches(obj1, obj2 client.Object, patchesConf []*config.Patch, reversePatchesConf []*config.Patch, nameResolver NameResolver) error {
@@ -65,16 +68,21 @@ func ApplyPatches(obj1, obj2 client.Object, patchesConf []*config.Patch, reverse
 }
 
 func applyPatch(obj1, obj2 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
-	if patch.Operation == config.PatchTypeRewriteName {
+	switch patch.Operation {
+	case config.PatchTypeRewriteName:
 		return RewriteName(obj1, patch, resolver)
-	} else if patch.Operation == config.PatchTypeReplace {
+	case config.PatchTypeRewriteLabelExpressionsSelector:
+		return RewriteLabelExpressionsSelector(obj1, patch, resolver)
+	case config.PatchTypeRewriteLabelSelector:
+		return RewriteLabelSelector(obj1, patch, resolver)
+	case config.PatchTypeReplace:
 		return Replace(obj1, patch)
-	} else if patch.Operation == config.PatchTypeRemove {
+	case config.PatchTypeRemove:
 		return Remove(obj1, patch)
-	} else if patch.Operation == config.PatchTypeCopyFromObject {
-		return CopyFromObject(obj1, obj2, patch)
-	} else if patch.Operation == config.PatchTypeAdd {
+	case config.PatchTypeAdd:
 		return Add(obj1, patch)
+	case config.PatchTypeCopyFromObject:
+		return CopyFromObject(obj1, obj2, patch)
 	}
 
 	return fmt.Errorf("patch operation is missing or is not recognized (%s)", patch.Operation)

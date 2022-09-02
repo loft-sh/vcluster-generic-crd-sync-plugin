@@ -7,6 +7,7 @@ import (
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/plugin"
 	"github.com/loft-sh/vcluster-sdk/log"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -562,4 +563,10 @@ func (r *memorizingHostToVirtualNameResolver) TranslateName(name string, path st
 	}
 	r.mappings[key] = n.Name
 	return n.Name, nil
+}
+func (r *memorizingHostToVirtualNameResolver) TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error) {
+	return nil, fmt.Errorf("translation not supported from host to virtual object")
+}
+func (r *memorizingHostToVirtualNameResolver) TranslateLabelSelector(selector map[string]string) (map[string]string, error) {
+	return nil, fmt.Errorf("translation not supported from host to virtual object")
 }

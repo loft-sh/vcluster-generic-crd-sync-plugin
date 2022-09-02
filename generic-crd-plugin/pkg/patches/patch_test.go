@@ -1,6 +1,7 @@
 package patches
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"testing"
 
@@ -180,6 +181,46 @@ test2: {}`,
         test: test
     abc: test`,
 		},
+		{
+			name: "resolve label selector",
+			patch: &config.Patch{
+				Operation: config.PatchTypeRewriteLabelSelector,
+				Path:      "test.abc",
+			},
+			nameResolver: &fakeNameResolver{},
+			obj1: `test:
+    abc: {}`,
+			expected: `test:
+    abc:
+        test: test`,
+		},
+		{
+			name: "resolve empty label selector",
+			patch: &config.Patch{
+				Operation: config.PatchTypeRewriteLabelSelector,
+				Path:      "test.abc",
+			},
+			nameResolver: &fakeNameResolver{},
+			obj1: `test:
+    abc: null`,
+			expected: `test:
+    abc: null`,
+		},
+		{
+			name: "resolve filled label selector",
+			patch: &config.Patch{
+				Operation: config.PatchTypeRewriteLabelSelector,
+				Path:      "test.abc",
+			},
+			nameResolver: &fakeNameResolver{},
+			obj1: `test:
+    abc:
+        test123: test123`,
+			expected: `test:
+    abc:
+        test: test
+        test123: test123`,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -200,4 +241,30 @@ test2: {}`,
 		assert.NilError(t, err, "error in yaml marshal in test case %s", testCase.name)
 		assert.Equal(t, strings.TrimSpace(string(out)), testCase.expected, "error in comparison in test case %s", testCase.name)
 	}
+}
+
+type fakeNameResolver struct{}
+
+func (f *fakeNameResolver) TranslateName(name string, path string) (string, error) {
+	return name, nil
+}
+
+func (f *fakeNameResolver) TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error) {
+	if selector == nil {
+		return nil, nil
+	}
+
+	if selector.MatchLabels == nil {
+		selector.MatchLabels = map[string]string{}
+	}
+	selector.MatchLabels["test"] = "test"
+	return selector, nil
+}
+
+func (f *fakeNameResolver) TranslateLabelSelector(selector map[string]string) (map[string]string, error) {
+	if selector == nil {
+		return nil, nil
+	}
+	selector["test"] = "test"
+	return selector, nil
 }

@@ -2,9 +2,11 @@ package patches
 
 import (
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strconv"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
+	yamlhelper "github.com/loft-sh/vcluster-generic-crd-plugin/pkg/util/yaml"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v3"
 )
@@ -187,8 +189,94 @@ func RewriteName(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) er
 	return nil
 }
 
-func RewriteNamespace(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
-	//TODO: implement
+func RewriteLabelSelector(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
+	matches, err := FindMatches(obj1, patch.Path)
+	if err != nil {
+		return errors.Wrap(err, "find matches")
+	}
+
+	for _, m := range matches {
+		if m.Kind == yaml.MappingNode {
+			validated, err := ValidateAllConditions(obj1, m, patch.Conditions)
+			if err != nil {
+				return errors.Wrap(err, "validate conditions")
+			} else if !validated {
+				continue
+			}
+
+			yamlString, err := yaml.Marshal(m)
+			if err != nil {
+				return errors.Wrap(err, "marshal label selector")
+			}
+
+			// try to unmarshal into label selector first
+			var newNode *yaml.Node
+			labelSelector := map[string]string{}
+			err = yamlhelper.UnmarshalStrict(yamlString, &labelSelector)
+			if err != nil {
+				return errors.Wrap(err, "unmarshal label selector")
+			}
+
+			// translate label selector
+			labelSelector, err = resolver.TranslateLabelSelector(labelSelector)
+			if err != nil {
+				return err
+			}
+
+			newNode, err = NewNode(labelSelector)
+			if err != nil {
+				return errors.Wrap(err, "create node")
+			}
+
+			ReplaceNode(obj1, m, newNode)
+		}
+	}
+
+	return nil
+}
+
+func RewriteLabelExpressionsSelector(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
+	matches, err := FindMatches(obj1, patch.Path)
+	if err != nil {
+		return errors.Wrap(err, "find matches")
+	}
+
+	for _, m := range matches {
+		if m.Kind == yaml.MappingNode {
+			validated, err := ValidateAllConditions(obj1, m, patch.Conditions)
+			if err != nil {
+				return errors.Wrap(err, "validate conditions")
+			} else if !validated {
+				continue
+			}
+
+			yamlString, err := yaml.Marshal(m)
+			if err != nil {
+				return errors.Wrap(err, "marshal label selector")
+			}
+
+			// try to unmarshal into label selector first
+			var newNode *yaml.Node
+			labelSelector := &metav1.LabelSelector{}
+			err = yamlhelper.UnmarshalStrict(yamlString, labelSelector)
+			if err != nil {
+				return errors.Wrap(err, "unmarshal label selector")
+			}
+
+			// translate label expressions selector
+			labelSelector, err = resolver.TranslateLabelExpressionsSelector(labelSelector)
+			if err != nil {
+				return err
+			}
+
+			newNode, err = NewNode(labelSelector)
+			if err != nil {
+				return errors.Wrap(err, "create node")
+			}
+
+			ReplaceNode(obj1, m, newNode)
+		}
+	}
 
 	return nil
 }
