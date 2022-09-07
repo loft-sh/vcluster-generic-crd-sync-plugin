@@ -1,14 +1,16 @@
 package main
 
 import (
-	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/blockingcacheclient"
 	"os"
+
+	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/blockingcacheclient"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/namecache"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/syncer"
 	"github.com/loft-sh/vcluster-sdk/plugin"
 	"github.com/loft-sh/vcluster-sdk/translate"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
 )
@@ -42,6 +44,9 @@ func main() {
 			klog.Fatalf("Error seting up namecache for a mapping", err)
 		}
 
+		forceSyncSecrets := []syncer.ForceSyncConfig{}
+		forceSyncConfigmaps := []syncer.ForceSyncConfig{}
+
 		// TODO: efficiently sync all mapped CRDs from the host to vcluster or perhaps this should be a separate controller that will watch CRDs and sync changes
 		for _, m := range configuration.Mappings {
 			if m.FromVirtualCluster != nil {
@@ -62,6 +67,22 @@ func main() {
 					klog.Fatalf("Error registering %s(%s) syncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
 				}
 
+				// check if this mapping uses Secret/Configmap sync
+				for _, p := range m.FromVirtualCluster.Patches {
+					if p.Sync != nil && p.Sync.Secret != nil && *p.Sync.Secret {
+						forceSyncSecrets = append(forceSyncSecrets, syncer.ForceSyncConfig{
+							Parent: *m.FromVirtualCluster,
+							Patch:  *p,
+						})
+					}
+					if p.Sync != nil && p.Sync.ConfigMap != nil && *p.Sync.ConfigMap {
+						forceSyncConfigmaps = append(forceSyncConfigmaps, syncer.ForceSyncConfig{
+							Parent: *m.FromVirtualCluster,
+							Patch:  *p,
+						})
+					}
+				}
+
 				for _, c := range m.FromVirtualCluster.SyncBack {
 					if !plugin.Scheme.Recognizes(schema.FromAPIVersionAndKind(m.FromVirtualCluster.ApiVersion, m.FromVirtualCluster.Kind)) {
 						err := translate.EnsureCRDFromPhysicalCluster(registerCtx.Context, registerCtx.PhysicalManager.GetConfig(), registerCtx.VirtualManager.GetConfig(), schema.FromAPIVersionAndKind(c.ApiVersion, c.Kind))
@@ -80,6 +101,27 @@ func main() {
 						klog.Fatalf("Error registering %s(%s) syncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
 					}
 				}
+			}
+		}
+
+		if len(forceSyncSecrets) > 0 {
+			s, err := syncer.CreateForceSyncController(registerCtx, corev1.SchemeGroupVersion.WithKind("Secret"), forceSyncSecrets, nc)
+			if err != nil {
+				klog.Fatalf("Error creating Secret ForceSyncController : %v", err)
+			}
+			err = plugin.Register(s)
+			if err != nil {
+				klog.Fatalf("Error registering Secret ForceSyncController: %v", err)
+			}
+		}
+		if len(forceSyncConfigmaps) > 0 {
+			s, err := syncer.CreateForceSyncController(registerCtx, corev1.SchemeGroupVersion.WithKind("ConfigMap"), forceSyncSecrets, nc)
+			if err != nil {
+				klog.Fatalf("Error creating ConfigMap ForceSyncController: %v", err)
+			}
+			err = plugin.Register(s)
+			if err != nil {
+				klog.Fatalf("Error registering ConfigMap ForceSyncController: %v", err)
 			}
 		}
 	}

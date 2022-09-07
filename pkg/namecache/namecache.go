@@ -55,6 +55,13 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mappings *config.Co
 					break
 				}
 			}
+			// check if there is any built-in sync enabled, as those use cache hooks
+			for _, p := range mapping.FromVirtualCluster.Patches {
+				if p.Sync != nil && ((p.Sync.Secret != nil && *p.Sync.Secret) || (p.Sync.ConfigMap != nil && *p.Sync.ConfigMap)) {
+					found = true
+					break
+				}
+			}
 			if len(mapping.FromVirtualCluster.SyncBack) > 0 {
 				found = true
 			}

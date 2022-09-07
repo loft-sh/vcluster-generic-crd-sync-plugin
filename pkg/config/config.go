@@ -126,6 +126,10 @@ type Patch struct {
 
 	// Ignore determines if the path should be ignored if handled as a reverse patch
 	Ignore *bool `yaml:"ignore,omitempty" json:"ignore,omitempty"`
+
+	// Sync defines if a specialized syncer should be initialized using values
+	// from the rewriteName operation as Secret/Confgimap names to be synced
+	Sync *PatchSync `yaml:"sync,omitempty" json:"sync,omitempty"`
 }
 
 type PatchType string
@@ -156,4 +160,8 @@ type PatchCondition struct {
 
 	// Empty means that the path value should be empty or unset
 	Empty *bool `yaml:"empty,omitempty" json:"empty,omitempty"`
+}
+type PatchSync struct {
+	Secret    *bool `yaml:"secret,omitempty" json:"secret,omitempty"`
+	ConfigMap *bool `yaml:"configmap,omitempty" json:"configmap,omitempty"`
 }

@@ -4,6 +4,11 @@ mappings:
       # CRD for the apiVersion+Kind is implicitly copied to the virtual cluster
       apiVersion: cert-manager.io/v1
       kind: Issuer
+      patches:
+        - op: rewriteName
+          path: spec.ca.secretName
+          sync:
+            secret: true
       reversePatches:
         - op: copyFromObject
           fromPath: status
