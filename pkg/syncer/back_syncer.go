@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/plugin"
 	"github.com/loft-sh/vcluster-sdk/log"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -11,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	"strings"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/namecache"
@@ -325,8 +326,8 @@ func (b *backSyncController) syncUp(ctx *synccontext.SyncContext, pObj client.Ob
 		return ctrl.Result{}, err
 	}
 
-	// apply object to physical cluster
-	ctx.Log.Infof("Create virtual %s %s/%s, since it is missing, but physical object exists", b.config.Kind, pObj.GetNamespace(), pObj.GetName())
+	// apply object to virtual cluster
+	ctx.Log.Infof("Create virtual %s %s/%s, since it is missing, but physical object exists", b.config.Kind, vNN.Namespace, vNN.Name)
 	nameResolver := &memorizingHostToVirtualNameResolver{nameCache: b.parentNameCache, gvk: b.parentGVK}
 	_, err = b.patcher.ApplyPatches(ctx.Context, pObj, nil, b.config.Patches, b.config.ReversePatches, b.translateMetadata, nameResolver)
 	if err != nil {
@@ -425,7 +426,7 @@ func (b *backSyncController) Start(ctx context.Context, h handler.EventHandler, 
 				if name != "" {
 					// key is format PHYSICAL_NAME/PATH
 					splitted := strings.Split(key, "/")
-					path := strings.Join(splitted[2:], "/")
+					path := strings.Join(splitted[1:], "/")
 					if rewrittenPath == "" || path == rewrittenPath {
 						q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
 							Namespace: b.targetNamespace,
