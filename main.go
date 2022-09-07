@@ -105,6 +105,9 @@ func main() {
 		}
 
 		if len(forceSyncSecrets) > 0 {
+			if containsStr(registerCtx.Options.Controllers, "-secrets") {
+				klog.Fatalf("The Secret sync is being used in the configuration, but vcluster Secret syncer is disabled.")
+			}
 			s, err := syncer.CreateForceSyncController(registerCtx, corev1.SchemeGroupVersion.WithKind("Secret"), forceSyncSecrets, nc)
 			if err != nil {
 				klog.Fatalf("Error creating Secret ForceSyncController : %v", err)
@@ -115,6 +118,9 @@ func main() {
 			}
 		}
 		if len(forceSyncConfigmaps) > 0 {
+			if containsStr(registerCtx.Options.Controllers, "-configmaps") {
+				klog.Fatalf("The ConfigMap sync is being used in the configuration, but vcluster ConfigMap syncer is disabled.")
+			}
 			s, err := syncer.CreateForceSyncController(registerCtx, corev1.SchemeGroupVersion.WithKind("ConfigMap"), forceSyncSecrets, nc)
 			if err != nil {
 				klog.Fatalf("Error creating ConfigMap ForceSyncController: %v", err)
@@ -131,4 +137,13 @@ func main() {
 	if err != nil {
 		klog.Fatalf("Error starting plugin: %v", err)
 	}
+}
+
+func containsStr(arr []string, s string) bool {
+	for _, item := range arr {
+		if item == s {
+			return true
+		}
+	}
+	return false
 }
