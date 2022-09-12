@@ -3,6 +3,8 @@ package patches
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	jsonyaml "github.com/ghodss/yaml"
@@ -13,7 +15,7 @@ import (
 )
 
 type NameResolver interface {
-	TranslateName(name string, path string) (string, error)
+	TranslateName(name string, regex *regexp.Regexp, path string) (string, error)
 	TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error)
 	TranslateLabelSelector(selector map[string]string) (map[string]string, error)
 }

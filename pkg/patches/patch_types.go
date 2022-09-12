@@ -2,13 +2,19 @@ package patches
 
 import (
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strconv"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	yamlhelper "github.com/loft-sh/vcluster-generic-crd-plugin/pkg/util/yaml"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v3"
+)
+
+const (
+	RegexNameGroup      = "NAME"
+	RegexNamespaceGroup = "NAMESPACE"
 )
 
 func CopyFromObject(obj1, obj2 *yaml.Node, patch *config.Patch) error {
@@ -172,7 +178,7 @@ func RewriteName(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) er
 				continue
 			}
 
-			translatedName, err := resolver.TranslateName(m.Value, patch.FromPath)
+			translatedName, err := resolver.TranslateName(m.Value, patch.ParsedRegex, patch.FromPath)
 			if err != nil {
 				return err
 			}

@@ -1,9 +1,11 @@
 package patches
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"regexp"
 	"strings"
 	"testing"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	yaml "gopkg.in/yaml.v3"
@@ -245,7 +247,7 @@ test2: {}`,
 
 type fakeNameResolver struct{}
 
-func (f *fakeNameResolver) TranslateName(name string, path string) (string, error) {
+func (f *fakeNameResolver) TranslateName(name string, _ *regexp.Regexp, path string) (string, error) {
 	return name, nil
 }
 

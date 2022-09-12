@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/plugin"
@@ -543,7 +544,8 @@ type memorizingHostToVirtualNameResolver struct {
 	mappings map[string]string
 }
 
-func (r *memorizingHostToVirtualNameResolver) TranslateName(name string, path string) (string, error) {
+func (r *memorizingHostToVirtualNameResolver) TranslateName(name string, _ *regexp.Regexp, path string) (string, error) {
+	// TODO: add regex support
 	if r.mappings == nil {
 		r.mappings = map[string]string{}
 	}
