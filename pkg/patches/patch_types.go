@@ -12,11 +12,6 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-const (
-	RegexNameGroup      = "NAME"
-	RegexNamespaceGroup = "NAMESPACE"
-)
-
 func CopyFromObject(obj1, obj2 *yaml.Node, patch *config.Patch) error {
 	if obj2 == nil {
 		return nil

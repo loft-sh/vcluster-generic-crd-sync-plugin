@@ -286,7 +286,11 @@ func (r *hostToVirtualNameResolver) TranslateLabelSelector(selector map[string]s
 func validateFromVirtualConfig(config *config.FromVirtualCluster) error {
 	for _, p := range append(config.Patches, config.ReversePatches...) {
 		if p.Regex != "" {
-			parsed, err := regexp.Compile(strings.TrimSpace(p.Regex))
+			re := strings.TrimSpace(p.Regex)
+			// replacement order is critical, replace $NAMESPACE first
+			re = strings.ReplaceAll(re, "$NAMESPACE", "?P<NAMESPACE>")
+			re = strings.ReplaceAll(re, "$NAME", "?P<NAME>")
+			parsed, err := regexp.Compile(re)
 			if err != nil {
 				return fmt.Errorf("invalid Regex: %v", err)
 			}
