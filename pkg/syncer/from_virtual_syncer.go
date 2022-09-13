@@ -213,37 +213,40 @@ func (r *virtualToHostNameResolver) TranslateName(name string, regex *regexp.Reg
 }
 
 func (r *virtualToHostNameResolver) TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error) {
+	var s *metav1.LabelSelector
 	if selector != nil {
+		s = &metav1.LabelSelector{}
 		if selector.MatchLabels == nil {
-			selector.MatchLabels = map[string]string{}
+			s.MatchLabels = map[string]string{}
 		}
 		for k, v := range selector.MatchLabels {
-			selector.MatchLabels[translator.ConvertLabelKey(k)] = v
+			s.MatchLabels[translator.ConvertLabelKey(k)] = v
 		}
 		if len(selector.MatchExpressions) > 0 {
-			selector.MatchExpressions = []metav1.LabelSelectorRequirement{}
+			s.MatchExpressions = []metav1.LabelSelectorRequirement{}
 			for i, r := range selector.MatchExpressions {
-				selector.MatchExpressions[i] = metav1.LabelSelectorRequirement{
+				s.MatchExpressions[i] = metav1.LabelSelectorRequirement{
 					Key:      translator.ConvertLabelKey(r.Key),
 					Operator: r.Operator,
 					Values:   r.Values,
 				}
 			}
 		}
-		selector.MatchLabels[translate.NamespaceLabel] = r.namespace
-		selector.MatchLabels[translate.MarkerLabel] = translate.Suffix
+		s.MatchLabels[translate.NamespaceLabel] = r.namespace
+		s.MatchLabels[translate.MarkerLabel] = translate.Suffix
 	}
-	return selector, nil
+	return s, nil
 }
 func (r *virtualToHostNameResolver) TranslateLabelSelector(selector map[string]string) (map[string]string, error) {
+	s := map[string]string{}
 	if selector != nil {
 		for k, v := range selector {
-			selector[translator.ConvertLabelKey(k)] = v
+			s[translator.ConvertLabelKey(k)] = v
 		}
-		selector[translate.NamespaceLabel] = r.namespace
-		selector[translate.MarkerLabel] = translate.Suffix
+		s[translate.NamespaceLabel] = r.namespace
+		s[translate.MarkerLabel] = translate.Suffix
 	}
-	return selector, nil
+	return s, nil
 }
 
 type hostToVirtualNameResolver struct {
