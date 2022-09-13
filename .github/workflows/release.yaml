@@ -9,6 +9,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v') == true
     runs-on: ubuntu-18.04
     permissions:
+      packages: write
       id-token: write   # This is the key for OIDC!
     steps:
       - uses: actions/checkout@v2
