@@ -2,14 +2,17 @@ package namecache
 
 import (
 	"fmt"
+
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/patches"
+	patchesregex "github.com/loft-sh/vcluster-generic-crd-plugin/pkg/patches/regex"
 	"github.com/loft-sh/vcluster-sdk/translate"
 	"github.com/pkg/errors"
 	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type fromVirtualClusterCacheHandler struct {
@@ -83,7 +86,21 @@ func (c *fromVirtualClusterCacheHandler) mappingsFromVirtualObject(obj *unstruct
 
 		for _, m := range matches {
 			if m.Kind == yaml.ScalarNode {
-				addSingleMapping(mappings, obj.GetNamespace()+"/"+m.Value, translate.PhysicalName(m.Value, obj.GetNamespace()), p.Path)
+
+				if p.ParsedRegex != nil {
+					_ = patchesregex.ProcessRegex(p.ParsedRegex, m.Value, func(name, namespace string) types.NamespacedName {
+						// if the regex match doesn't contain namespace - use the namespace of the virtual object that is being handled
+						if namespace == "" {
+							namespace = obj.GetNamespace()
+						}
+						addSingleMapping(mappings, namespace+"/"+name, translate.PhysicalName(name, namespace), p.Path)
+
+						// return empty as return value will not be used, we only want to add the mappings above
+						return types.NamespacedName{}
+					})
+				} else {
+					addSingleMapping(mappings, obj.GetNamespace()+"/"+m.Value, translate.PhysicalName(m.Value, obj.GetNamespace()), p.Path)
+				}
 			}
 		}
 	}

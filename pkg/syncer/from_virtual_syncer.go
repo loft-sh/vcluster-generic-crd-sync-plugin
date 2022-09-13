@@ -2,15 +2,17 @@ package syncer
 
 import (
 	"fmt"
+	"regexp"
+
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/namecache"
+	patchesregex "github.com/loft-sh/vcluster-generic-crd-plugin/pkg/patches/regex"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/plugin"
 	"github.com/loft-sh/vcluster-sdk/log"
 	"github.com/loft-sh/vcluster-sdk/syncer"
 	synccontext "github.com/loft-sh/vcluster-sdk/syncer/context"
 	"github.com/loft-sh/vcluster-sdk/syncer/translator"
 	"github.com/loft-sh/vcluster-sdk/translate"
-	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -27,12 +29,16 @@ func CreateFromVirtualSyncer(ctx *synccontext.RegisterContext, config *config.Fr
 	obj.SetKind(config.Kind)
 	obj.SetAPIVersion(config.ApiVersion)
 
-	var err error
+	err := validateFromVirtualConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("invalid configuration for %s(%s) mapping: %v", config.Kind, config.ApiVersion, err)
+	}
+
 	var selector labels.Selector
-	if config.Selector != nil && len(config.Selector.LabelSelector) > 0 {
+	if config.Selector != nil {
 		selector, err = metav1.LabelSelectorAsSelector(metav1.SetAsLabelSelector(config.Selector.LabelSelector))
 		if err != nil {
-			return nil, errors.Wrap(err, "parse label selector")
+			return nil, fmt.Errorf("invalid selector in configuration for %s(%s) mapping: %v", config.Kind, config.ApiVersion, err)
 		}
 	}
 
@@ -47,10 +53,11 @@ func CreateFromVirtualSyncer(ctx *synccontext.RegisterContext, config *config.Fr
 			statusIsSubresource: statusIsSubresource,
 			log:                 log.New(config.Kind + "-from-virtual-syncer"),
 		},
-		gvk:       schema.FromAPIVersionAndKind(config.ApiVersion, config.Kind),
-		config:    config,
-		nameCache: nc,
-		selector:  selector,
+		gvk:             schema.FromAPIVersionAndKind(config.ApiVersion, config.Kind),
+		config:          config,
+		nameCache:       nc,
+		selector:        selector,
+		targetNamespace: ctx.TargetNamespace,
 	}, nil
 }
 
@@ -60,9 +67,10 @@ type fromVirtualController struct {
 	patcher *patcher
 	gvk     schema.GroupVersionKind
 
-	config    *config.FromVirtualCluster
-	nameCache namecache.NameCache
-	selector  labels.Selector
+	config          *config.FromVirtualCluster
+	nameCache       namecache.NameCache
+	selector        labels.Selector
+	targetNamespace string
 }
 
 func (f *fromVirtualController) SyncDown(ctx *synccontext.SyncContext, vObj client.Object) (ctrl.Result, error) {
@@ -75,7 +83,7 @@ func (f *fromVirtualController) SyncDown(ctx *synccontext.SyncContext, vObj clie
 	ctx.Log.Infof("Create physical %s %s/%s, since it is missing, but virtual object exists", f.config.Kind, vObj.GetNamespace(), vObj.GetName())
 	_, err := f.patcher.ApplyPatches(ctx.Context, vObj, nil, f.config.Patches, f.config.ReversePatches, func(vObj client.Object) (client.Object, error) {
 		return f.TranslateMetadata(vObj), nil
-	}, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
+	}, &virtualToHostNameResolver{namespace: vObj.GetNamespace(), targetNamespace: f.targetNamespace})
 	if err != nil {
 		f.EventRecorder().Eventf(vObj, "Warning", "SyncError", "Error syncing to physical cluster: %v", err)
 		return ctrl.Result{}, fmt.Errorf("error applying patches: %v", err)
@@ -123,7 +131,7 @@ func (f *fromVirtualController) Sync(ctx *synccontext.SyncContext, pObj client.O
 	// apply patches
 	_, err = f.patcher.ApplyPatches(ctx.Context, vObj, pObj, f.config.Patches, f.config.ReversePatches, func(vObj client.Object) (client.Object, error) {
 		return f.TranslateMetadata(vObj), nil
-	}, &virtualToHostNameResolver{namespace: vObj.GetNamespace()})
+	}, &virtualToHostNameResolver{namespace: vObj.GetNamespace(), targetNamespace: f.targetNamespace})
 	if err != nil {
 		if kerrors.IsInvalid(err) {
 			ctx.Log.Infof("Warning: this message could indicate a timing issue with no significant impact, or a bug. Please report this if your resource never reaches the expected state. Error message: failed to patch physical %s %s/%s: %v", f.config.Kind, vObj.GetNamespace(), vObj.GetName(), err)
@@ -186,12 +194,24 @@ func (f *fromVirtualController) objectMatches(obj client.Object) bool {
 }
 
 type virtualToHostNameResolver struct {
-	namespace string
+	namespace       string
+	targetNamespace string
 }
 
-func (r *virtualToHostNameResolver) TranslateName(name string, _ string) (string, error) {
-	return translate.PhysicalName(name, r.namespace), nil
+func (r *virtualToHostNameResolver) TranslateName(name string, regex *regexp.Regexp, _ string) (string, error) {
+	if regex != nil {
+		return patchesregex.ProcessRegex(regex, name, func(name, namespace string) types.NamespacedName {
+			// if the regex match doesn't contain namespace - use the namespace set in this resolver
+			if namespace == "" {
+				namespace = r.namespace
+			}
+			return types.NamespacedName{Namespace: r.targetNamespace, Name: translate.PhysicalName(name, namespace)}
+		}), nil
+	} else {
+		return translate.PhysicalName(name, r.namespace), nil
+	}
 }
+
 func (r *virtualToHostNameResolver) TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error) {
 	if selector != nil {
 		if selector.MatchLabels == nil {
@@ -232,12 +252,22 @@ type hostToVirtualNameResolver struct {
 	nameCache namecache.NameCache
 }
 
-func (r *hostToVirtualNameResolver) TranslateName(name string, path string) (string, error) {
+func (r *hostToVirtualNameResolver) TranslateName(name string, regex *regexp.Regexp, path string) (string, error) {
 	var n types.NamespacedName
-	if path == "" {
-		n = r.nameCache.ResolveName(r.gvk, name)
+	if regex != nil {
+		return patchesregex.ProcessRegex(regex, name, func(name, namespace string) types.NamespacedName {
+			if path == "" {
+				return r.nameCache.ResolveName(r.gvk, name)
+			} else {
+				return r.nameCache.ResolveNamePath(r.gvk, name, path)
+			}
+		}), nil
 	} else {
-		n = r.nameCache.ResolveNamePath(r.gvk, name, path)
+		if path == "" {
+			n = r.nameCache.ResolveName(r.gvk, name)
+		} else {
+			n = r.nameCache.ResolveNamePath(r.gvk, name, path)
+		}
 	}
 	if n.Name == "" {
 		return "", fmt.Errorf("could not translate %s host resource name to vcluster resource name", name)
@@ -250,4 +280,17 @@ func (r *hostToVirtualNameResolver) TranslateLabelExpressionsSelector(selector *
 }
 func (r *hostToVirtualNameResolver) TranslateLabelSelector(selector map[string]string) (map[string]string, error) {
 	return nil, fmt.Errorf("translation not supported from host to virtual object")
+}
+
+func validateFromVirtualConfig(config *config.FromVirtualCluster) error {
+	for _, p := range append(config.Patches, config.ReversePatches...) {
+		if p.Regex != "" {
+			parsed, err := patchesregex.PrepareRegex(p.Regex)
+			if err != nil {
+				return fmt.Errorf("invalid Regex: %v", err)
+			}
+			p.ParsedRegex = parsed
+		}
+	}
+	return nil
 }

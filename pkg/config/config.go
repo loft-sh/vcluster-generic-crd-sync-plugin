@@ -1,5 +1,7 @@
 package config
 
+import "regexp"
+
 const Version = "v1beta1"
 
 type Config struct {
@@ -117,8 +119,14 @@ type Patch struct {
 	// Path is the path of the patch
 	Path string `yaml:"path,omitempty" json:"path,omitempty"`
 
-	// Value is the value of the path
+	// Value is the new value to be set to the path
 	Value interface{} `yaml:"value,omitempty" json:"value,omitempty"`
+
+	// Regex - is regular expresion used to identify the Name,
+	// and optionally Namespace, parts of the field value that
+	// will be replaced with the rewritten Name and/or Namespace
+	Regex       string         `yaml:"regex,omitempty" json:"regex,omitempty"`
+	ParsedRegex *regexp.Regexp `yaml:"-" json:"-"`
 
 	// Conditions are conditions that must be true for
 	// the patch to get executed
