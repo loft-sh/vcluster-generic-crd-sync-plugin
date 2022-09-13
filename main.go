@@ -35,14 +35,14 @@ func main() {
 	} else {
 		klog.Infof("Loading configuration:\n%s", c) //dev
 		configuration, err := config.ParseConfig(c)
+		if err != nil {
+			klog.Fatal(err)
+		}
 		loadedConfig, err := yaml.Marshal(configuration)
 		if err != nil {
 			klog.Fatal(err)
 		}
 		klog.Infof("Loaded configuration:\n%s", string(loadedConfig)) //dev
-		if err != nil {
-			klog.Fatal(err)
-		}
 
 		// TODO: efficiently sync all mapped CRDs from the host to vcluster or perhaps this should be a separate controller that will watch CRDs and sync changes
 		for _, m := range configuration.Mappings {
