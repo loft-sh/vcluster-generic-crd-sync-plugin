@@ -3,7 +3,6 @@ package syncer
 import (
 	"fmt"
 	"regexp"
-	"strings"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/namecache"
@@ -286,11 +285,7 @@ func (r *hostToVirtualNameResolver) TranslateLabelSelector(selector map[string]s
 func validateFromVirtualConfig(config *config.FromVirtualCluster) error {
 	for _, p := range append(config.Patches, config.ReversePatches...) {
 		if p.Regex != "" {
-			re := strings.TrimSpace(p.Regex)
-			// replacement order is critical, replace $NAMESPACE first
-			re = strings.ReplaceAll(re, "$NAMESPACE", "?P<NAMESPACE>")
-			re = strings.ReplaceAll(re, "$NAME", "?P<NAME>")
-			parsed, err := regexp.Compile(re)
+			parsed, err := patchesregex.PrepareRegex(p.Regex)
 			if err != nil {
 				return fmt.Errorf("invalid Regex: %v", err)
 			}

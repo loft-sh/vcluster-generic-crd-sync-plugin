@@ -3,6 +3,7 @@ package regex
 import (
 	"regexp"
 	"sort"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -11,6 +12,14 @@ const (
 	RegexNameGroup      = "NAME"
 	RegexNamespaceGroup = "NAMESPACE"
 )
+
+func PrepareRegex(regex string) (*regexp.Regexp, error) {
+	re := strings.TrimSpace(regex)
+	// replacement order is critical, replace $NAMESPACE first
+	re = strings.ReplaceAll(re, "$NAMESPACE", "(?P<NAMESPACE>[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)")
+	re = strings.ReplaceAll(re, "$NAME", "(?P<NAME>[a-z](?:[-a-z0-9]*[a-z0-9])?)")
+	return regexp.Compile(re)
+}
 
 type RegexTranslateFunc func(name, namespace string) types.NamespacedName
 
