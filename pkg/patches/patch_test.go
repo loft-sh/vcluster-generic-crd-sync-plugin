@@ -270,3 +270,7 @@ func (f *fakeNameResolver) TranslateLabelSelector(selector map[string]string) (m
 	selector["test"] = "test"
 	return selector, nil
 }
+
+func (f *fakeNameResolver) TranslateNamespaceRef(name string) (string, error) {
+	return "default", nil
+}

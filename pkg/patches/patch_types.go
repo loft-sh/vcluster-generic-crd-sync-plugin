@@ -191,6 +191,43 @@ func RewriteName(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) er
 	return nil
 }
 
+func RewriteNamespaceRef(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
+	matches, err := FindMatches(obj1, patch.Path)
+	if err != nil {
+		return errors.Wrap(err, "find matches")
+	}
+
+	for _, m := range matches {
+		if m.Kind == yaml.ScalarNode {
+			// validated, err := ValidateAllConditions(obj1, m, patch.Conditions)
+			// if err != nil {
+			// 	return errors.Wrap(err, "validate conditions")
+			// } else if !validated {
+			// 	continue
+			// }
+
+			// translatedName, err := resolver.TranslateName(m.Value, patch.ParsedRegex, patch.FromPath)
+			// if err != nil {
+			// 	return err
+			// }
+
+			translatedNamespace, err := resolver.TranslateNamespaceRef(m.Value)
+			if err != nil {
+				return err
+			}
+
+			newNode, err := NewNode(translatedNamespace)
+			if err != nil {
+				return errors.Wrap(err, "create node")
+			}
+
+			ReplaceNode(obj1, m, newNode)
+		}
+	}
+
+	return nil
+}
+
 func RewriteLabelSelector(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
 	matches, err := FindMatches(obj1, patch.Path)
 	if err != nil {

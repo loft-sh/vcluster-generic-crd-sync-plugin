@@ -144,6 +144,7 @@ type PatchType string
 
 const (
 	PatchTypeRewriteName                     = "rewriteName"
+	PatchTypeRewriteNamespaceRef             = "rewriteNamespaceRef"
 	PatchTypeRewriteLabelSelector            = "rewriteLabelSelector"
 	PatchTypeRewriteLabelExpressionsSelector = "rewriteLabelExpressionsSelector"
 

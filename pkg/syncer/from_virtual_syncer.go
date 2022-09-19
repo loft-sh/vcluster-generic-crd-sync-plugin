@@ -246,6 +246,14 @@ func (r *virtualToHostNameResolver) TranslateLabelSelector(selector map[string]s
 	return s, nil
 }
 
+func (r *virtualToHostNameResolver) TranslateNamespaceRef(namespace string) (string, error) {
+	if r.targetNamespace == "" {
+		return "default", nil
+	}
+
+	return r.targetNamespace, nil
+}
+
 type hostToVirtualNameResolver struct {
 	gvk schema.GroupVersionKind
 
@@ -280,6 +288,9 @@ func (r *hostToVirtualNameResolver) TranslateLabelExpressionsSelector(selector *
 }
 func (r *hostToVirtualNameResolver) TranslateLabelSelector(selector map[string]string) (map[string]string, error) {
 	return nil, fmt.Errorf("translation not supported from host to virtual object")
+}
+func (r *hostToVirtualNameResolver) TranslateNamespaceRef(namespace string) (string, error) {
+	return "", fmt.Errorf("translation not supported from host to virtual object")
 }
 
 func validateFromVirtualConfig(config *config.FromVirtualCluster) error {

@@ -573,3 +573,6 @@ func (r *memorizingHostToVirtualNameResolver) TranslateLabelExpressionsSelector(
 func (r *memorizingHostToVirtualNameResolver) TranslateLabelSelector(selector map[string]string) (map[string]string, error) {
 	return nil, fmt.Errorf("translation not supported from host to virtual object")
 }
+func (r *memorizingHostToVirtualNameResolver) TranslateNamespaceRef(namespace string) (string, error) {
+	return "", fmt.Errorf("translation not supported from host to virtual object")
+}

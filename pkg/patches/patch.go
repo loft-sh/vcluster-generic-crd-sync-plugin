@@ -18,6 +18,7 @@ type NameResolver interface {
 	TranslateName(name string, regex *regexp.Regexp, path string) (string, error)
 	TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error)
 	TranslateLabelSelector(selector map[string]string) (map[string]string, error)
+	TranslateNamespaceRef(namespace string) (string, error)
 }
 
 func ApplyPatches(obj1, obj2 client.Object, patchesConf []*config.Patch, reversePatchesConf []*config.Patch, nameResolver NameResolver) error {
@@ -73,6 +74,8 @@ func applyPatch(obj1, obj2 *yaml.Node, patch *config.Patch, resolver NameResolve
 	switch patch.Operation {
 	case config.PatchTypeRewriteName:
 		return RewriteName(obj1, patch, resolver)
+	case config.PatchTypeRewriteNamespaceRef:
+		return RewriteNamespaceRef(obj1, patch, resolver)
 	case config.PatchTypeRewriteLabelExpressionsSelector:
 		return RewriteLabelExpressionsSelector(obj1, patch, resolver)
 	case config.PatchTypeRewriteLabelSelector:
