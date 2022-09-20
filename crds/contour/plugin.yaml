@@ -29,6 +29,8 @@ plugin:
                     path: spec.routes..services..name
                   - op: rewriteName
                     path: spec.virtualhost.tls.secretName
+                    sync:
+                      secret: true
                 reversePatches:
                   - op: copyFromObject
                     fromPath: status
