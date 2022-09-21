@@ -43,7 +43,7 @@ func ApplyPatches(obj1, obj2 client.Object, patchesConf []*config.Patch, reverse
 
 	// remove ignore paths from patched object
 	for _, p := range reversePatchesConf {
-		if p.Path == "" || (p.Ignore != nil && *p.Ignore == false) {
+		if p.Path == "" || (p.Ignore != nil && !*p.Ignore) {
 			continue
 		}
 

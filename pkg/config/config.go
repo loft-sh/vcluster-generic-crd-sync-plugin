@@ -80,8 +80,8 @@ type FromHostCluster struct {
 }
 
 type TypeInformation struct {
-	// ApiVersion of the object to sync
-	ApiVersion string `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
+	// APIVersion of the object to sync
+	APIVersion string `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
 
 	// Kind of the object to sync
 	Kind string `yaml:"kind,omitempty" json:"kind,omitempty"`

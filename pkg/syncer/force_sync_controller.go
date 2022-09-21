@@ -91,7 +91,7 @@ func (f *forceSyncController) Register(ctx *synccontext.RegisterContext) error {
 
 func (f *forceSyncController) shouldSync(obj client.Object) bool {
 	for _, c := range f.config {
-		parentGVK := schema.FromAPIVersionAndKind(c.Parent.ApiVersion, c.Parent.Kind)
+		parentGVK := schema.FromAPIVersionAndKind(c.Parent.APIVersion, c.Parent.Kind)
 		nn := f.nameCache.ResolveNamePath(parentGVK, translate.PhysicalName(obj.GetName(), obj.GetNamespace()), c.Patch.Path)
 		if nn.Name != "" {
 			// if this config matches then we don't evaluate other and return
@@ -106,7 +106,7 @@ var _ source.Source = &backSyncController{}
 func (f *forceSyncController) Start(ctx context.Context, h handler.EventHandler, q workqueue.RateLimitingInterface, predicates ...predicate.Predicate) error {
 	// setup the necessary name cache hooks
 	for _, c := range f.config {
-		parentGVK := schema.FromAPIVersionAndKind(c.Parent.ApiVersion, c.Parent.Kind)
+		parentGVK := schema.FromAPIVersionAndKind(c.Parent.APIVersion, c.Parent.Kind)
 		f.nameCache.AddChangeHook(parentGVK, namecache.IndexPhysicalToVirtualNamePath, func(name, key, value string) {
 			if name != "" {
 				// value format is HOST_NAME/PATH

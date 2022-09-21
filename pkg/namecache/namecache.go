@@ -45,7 +45,7 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mappings *config.Co
 	for _, mapping := range mappings.Mappings {
 		if mapping.FromVirtualCluster != nil {
 			// add informer to cache
-			gvk := schema.FromAPIVersionAndKind(mapping.FromVirtualCluster.ApiVersion, mapping.FromVirtualCluster.Kind)
+			gvk := schema.FromAPIVersionAndKind(mapping.FromVirtualCluster.APIVersion, mapping.FromVirtualCluster.Kind)
 
 			// check if there is at least 1 reverse patch that would use the cache
 			found := false
@@ -71,7 +71,7 @@ func NewNameCache(ctx context.Context, manager ctrl.Manager, mappings *config.Co
 
 			// construct object and watch
 			obj := &unstructured.Unstructured{}
-			obj.SetAPIVersion(mapping.FromVirtualCluster.ApiVersion)
+			obj.SetAPIVersion(mapping.FromVirtualCluster.APIVersion)
 			obj.SetKind(mapping.FromVirtualCluster.Kind)
 			informer, err := manager.GetCache().GetInformer(ctx, obj)
 			if err != nil {

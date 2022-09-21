@@ -47,9 +47,9 @@ func CreateBackSyncer(ctx *synccontext.RegisterContext, config *config.SyncBack,
 
 	obj := &unstructured.Unstructured{}
 	obj.SetKind(config.Kind)
-	obj.SetAPIVersion(config.ApiVersion)
+	obj.SetAPIVersion(config.APIVersion)
 
-	// TODO: [low priority] check if config.Kind + config.ApiVersion has status subresource
+	// TODO: [low priority] check if config.Kind + config.APIVersion has status subresource
 	statusIsSubresource := true
 	return &backSyncController{
 		log: log.New(config.Kind + "-back-syncer"),
@@ -60,7 +60,7 @@ func CreateBackSyncer(ctx *synccontext.RegisterContext, config *config.SyncBack,
 			log:                 log.New(config.Kind + "-back-syncer"),
 		},
 
-		parentGVK:       schema.FromAPIVersionAndKind(parentConfig.ApiVersion, parentConfig.Kind),
+		parentGVK:       schema.FromAPIVersionAndKind(parentConfig.APIVersion, parentConfig.Kind),
 		obj:             obj,
 		options:         ctx.Options,
 		config:          config,
@@ -507,7 +507,7 @@ func (b *backSyncController) enqueueVirtual(obj client.Object, q workqueue.RateL
 
 	list := &unstructured.UnstructuredList{}
 	list.SetKind(b.config.Kind + "List")
-	list.SetAPIVersion(b.config.ApiVersion)
+	list.SetAPIVersion(b.config.APIVersion)
 	err := b.physicalClient.List(context.Background(), list, client.MatchingFields{IndexByVirtualName: obj.GetNamespace() + "/" + obj.GetName()})
 	if err != nil {
 		b.log.Errorf("error listing %s for virtual to physical name translation: %v", b.config.Kind, err)

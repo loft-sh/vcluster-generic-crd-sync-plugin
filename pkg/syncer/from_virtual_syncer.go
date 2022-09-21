@@ -27,23 +27,23 @@ import (
 func CreateFromVirtualSyncer(ctx *synccontext.RegisterContext, config *config.FromVirtualCluster, nc namecache.NameCache) (syncer.Syncer, error) {
 	obj := &unstructured.Unstructured{}
 	obj.SetKind(config.Kind)
-	obj.SetAPIVersion(config.ApiVersion)
+	obj.SetAPIVersion(config.APIVersion)
 
 	err := validateFromVirtualConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("invalid configuration for %s(%s) mapping: %v", config.Kind, config.ApiVersion, err)
+		return nil, fmt.Errorf("invalid configuration for %s(%s) mapping: %v", config.Kind, config.APIVersion, err)
 	}
 
 	var selector labels.Selector
 	if config.Selector != nil {
 		selector, err = metav1.LabelSelectorAsSelector(metav1.SetAsLabelSelector(config.Selector.LabelSelector))
 		if err != nil {
-			return nil, fmt.Errorf("invalid selector in configuration for %s(%s) mapping: %v", config.Kind, config.ApiVersion, err)
+			return nil, fmt.Errorf("invalid selector in configuration for %s(%s) mapping: %v", config.Kind, config.APIVersion, err)
 		}
 	}
 
 	statusIsSubresource := true
-	// TODO: [low priority] check if config.Kind + config.ApiVersion has status subresource
+	// TODO: [low priority] check if config.Kind + config.APIVersion has status subresource
 
 	return &fromVirtualController{
 		NamespacedTranslator: translator.NewNamespacedTranslator(ctx, config.Kind+"-from-virtual-syncer", obj),
@@ -53,7 +53,7 @@ func CreateFromVirtualSyncer(ctx *synccontext.RegisterContext, config *config.Fr
 			statusIsSubresource: statusIsSubresource,
 			log:                 log.New(config.Kind + "-from-virtual-syncer"),
 		},
-		gvk:             schema.FromAPIVersionAndKind(config.ApiVersion, config.Kind),
+		gvk:             schema.FromAPIVersionAndKind(config.APIVersion, config.Kind),
 		config:          config,
 		nameCache:       nc,
 		selector:        selector,

@@ -1,0 +1,31 @@
+run:
+  timeout: 10m
+  skip-dirs:
+  - hack/
+  - docs/
+
+linters:
+  disable-all:  true
+  enable:
+    - deadcode
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - unused
+    - varcheck
+    - staticcheck
+    - errcheck
+    # - goimports
+    - dupl
+    - nakedret
+    - stylecheck
+    # - gofmt
+    # - golint
+    # - structcheck
+  
+linters-settings:
+  gofmt:
+    simplify: true
+  dupl:
+    threshold: 400

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/util/yaml"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -34,7 +35,7 @@ func validate(config *Config) error {
 		if mapping.FromVirtualCluster.Kind == "" {
 			return fmt.Errorf("mappings[%d].fromVirtualCluster.kind is required", idx)
 		}
-		if mapping.FromVirtualCluster.ApiVersion == "" {
+		if mapping.FromVirtualCluster.APIVersion == "" {
 			return fmt.Errorf("mappings[%d].fromVirtualCluster.apiVersion is required", idx)
 		}
 
@@ -68,11 +69,11 @@ func validateSyncBack(syncBack *SyncBack, uniqueSyncBacks map[schema.GroupVersio
 	if syncBack.Kind == "" {
 		return fmt.Errorf("kind is required")
 	}
-	if syncBack.ApiVersion == "" {
+	if syncBack.APIVersion == "" {
 		return fmt.Errorf("apiVersion is required")
 	}
 
-	gvk := schema.FromAPIVersionAndKind(syncBack.ApiVersion, syncBack.Kind)
+	gvk := schema.FromAPIVersionAndKind(syncBack.APIVersion, syncBack.Kind)
 	if uniqueSyncBacks[gvk] {
 		return fmt.Errorf("another syncBack with the same kind and apiVersion already exists")
 	}
