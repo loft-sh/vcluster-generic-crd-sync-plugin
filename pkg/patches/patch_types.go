@@ -10,6 +10,7 @@ import (
 	yamlhelper "github.com/loft-sh/vcluster-generic-crd-plugin/pkg/util/yaml"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v3"
+	k8syaml "sigs.k8s.io/yaml"
 )
 
 func CopyFromObject(obj1, obj2 *yaml.Node, patch *config.Patch) error {
@@ -259,7 +260,9 @@ func RewriteLabelExpressionsSelector(obj1 *yaml.Node, patch *config.Patch, resol
 			// try to unmarshal into label selector first
 			var newNode *yaml.Node
 			labelSelector := &metav1.LabelSelector{}
-			err = yamlhelper.UnmarshalStrict(yamlString, labelSelector)
+			// using sigs.k8s.io/yaml below because it can unmarshal based on json tags,
+			// because yaml tags are not present on the metav1.LabelSelector fields
+			err = k8syaml.Unmarshal(yamlString, labelSelector)
 			if err != nil {
 				return errors.Wrap(err, "unmarshal label selector")
 			}
@@ -270,7 +273,8 @@ func RewriteLabelExpressionsSelector(obj1 *yaml.Node, patch *config.Patch, resol
 				return err
 			}
 
-			newNode, err = NewNode(labelSelector)
+			// using NewJSONNode below because yaml tags are not present on the metav1.LabelSelector fields
+			newNode, err = NewJSONNode(labelSelector)
 			if err != nil {
 				return errors.Wrap(err, "create node")
 			}

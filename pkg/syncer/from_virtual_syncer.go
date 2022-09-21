@@ -215,10 +215,7 @@ func (r *virtualToHostNameResolver) TranslateName(name string, regex *regexp.Reg
 func (r *virtualToHostNameResolver) TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error) {
 	var s *metav1.LabelSelector
 	if selector != nil {
-		s = &metav1.LabelSelector{}
-		if selector.MatchLabels == nil {
-			s.MatchLabels = map[string]string{}
-		}
+		s = &metav1.LabelSelector{MatchLabels: map[string]string{}}
 		for k, v := range selector.MatchLabels {
 			s.MatchLabels[translator.ConvertLabelKey(k)] = v
 		}
