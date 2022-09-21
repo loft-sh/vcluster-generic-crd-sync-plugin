@@ -31,7 +31,7 @@ func main() {
 
 	c := os.Getenv(ConfigurationEnvVar)
 	if c == "" {
-		klog.Warning("The %s environment variable is empty, no configuration has been loaded", ConfigurationEnvVar)
+		klog.Warningf("The %s environment variable is empty, no configuration has been loaded", ConfigurationEnvVar)
 	} else {
 		klog.Infof("Loading configuration:\n%s", c) //dev
 		configuration, err := config.ParseConfig(c)
@@ -47,18 +47,18 @@ func main() {
 		// TODO: efficiently sync all mapped CRDs from the host to vcluster or perhaps this should be a separate controller that will watch CRDs and sync changes
 		for _, m := range configuration.Mappings {
 			if m.FromVirtualCluster != nil {
-				if !plugin.Scheme.Recognizes(schema.FromAPIVersionAndKind(m.FromVirtualCluster.ApiVersion, m.FromVirtualCluster.Kind)) {
-					err := translate.EnsureCRDFromPhysicalCluster(registerCtx.Context, registerCtx.PhysicalManager.GetConfig(), registerCtx.VirtualManager.GetConfig(), schema.FromAPIVersionAndKind(m.FromVirtualCluster.ApiVersion, m.FromVirtualCluster.Kind))
+				if !plugin.Scheme.Recognizes(schema.FromAPIVersionAndKind(m.FromVirtualCluster.APIVersion, m.FromVirtualCluster.Kind)) {
+					err := translate.EnsureCRDFromPhysicalCluster(registerCtx.Context, registerCtx.PhysicalManager.GetConfig(), registerCtx.VirtualManager.GetConfig(), schema.FromAPIVersionAndKind(m.FromVirtualCluster.APIVersion, m.FromVirtualCluster.Kind))
 					if err != nil {
-						klog.Fatalf("Error syncronizing CRD %s(%s) from the host cluster into vcluster: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
+						klog.Fatalf("Error syncronizing CRD %s(%s) from the host cluster into vcluster: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.APIVersion, err)
 					}
 				}
 
 				for _, c := range m.FromVirtualCluster.SyncBack {
-					if !plugin.Scheme.Recognizes(schema.FromAPIVersionAndKind(m.FromVirtualCluster.ApiVersion, m.FromVirtualCluster.Kind)) {
-						err := translate.EnsureCRDFromPhysicalCluster(registerCtx.Context, registerCtx.PhysicalManager.GetConfig(), registerCtx.VirtualManager.GetConfig(), schema.FromAPIVersionAndKind(c.ApiVersion, c.Kind))
+					if !plugin.Scheme.Recognizes(schema.FromAPIVersionAndKind(m.FromVirtualCluster.APIVersion, m.FromVirtualCluster.Kind)) {
+						err := translate.EnsureCRDFromPhysicalCluster(registerCtx.Context, registerCtx.PhysicalManager.GetConfig(), registerCtx.VirtualManager.GetConfig(), schema.FromAPIVersionAndKind(c.APIVersion, c.Kind))
 						if err != nil {
-							klog.Fatalf("Error syncronizing CRD %s(%s) from the host cluster into vcluster: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
+							klog.Fatalf("Error syncronizing CRD %s(%s) from the host cluster into vcluster: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.APIVersion, err)
 						}
 					}
 				}
@@ -68,7 +68,7 @@ func main() {
 		// create a single name cache
 		nc, err := namecache.NewNameCache(registerCtx.Context, registerCtx.VirtualManager, configuration)
 		if err != nil {
-			klog.Fatalf("Error seting up namecache for a mapping", err)
+			klog.Fatal("Error seting up namecache for a mapping ", err)
 		}
 
 		forceSyncSecrets := []syncer.ForceSyncConfig{}
@@ -78,12 +78,12 @@ func main() {
 			if m.FromVirtualCluster != nil {
 				s, err := syncer.CreateFromVirtualSyncer(registerCtx, m.FromVirtualCluster, nc)
 				if err != nil {
-					klog.Fatalf("Error creating %s(%s) syncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
+					klog.Fatalf("Error creating %s(%s) syncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.APIVersion, err)
 				}
 
 				err = plugin.Register(s)
 				if err != nil {
-					klog.Fatalf("Error registering %s(%s) syncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
+					klog.Fatalf("Error registering %s(%s) syncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.APIVersion, err)
 				}
 
 				// check if this mapping uses Secret/Configmap sync
@@ -105,12 +105,12 @@ func main() {
 				for _, c := range m.FromVirtualCluster.SyncBack {
 					backSyncer, err := syncer.CreateBackSyncer(registerCtx, c, m.FromVirtualCluster, nc)
 					if err != nil {
-						klog.Fatalf("Error creating %s(%s) backsyncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
+						klog.Fatalf("Error creating %s(%s) backsyncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.APIVersion, err)
 					}
 
 					err = plugin.Register(backSyncer)
 					if err != nil {
-						klog.Fatalf("Error registering %s(%s) syncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.ApiVersion, err)
+						klog.Fatalf("Error registering %s(%s) syncer: %v", m.FromVirtualCluster.Kind, m.FromVirtualCluster.APIVersion, err)
 					}
 				}
 			}
