@@ -2,7 +2,7 @@
 # with the other vcluster values during vcluster create or helm install.
 plugin:
   contour:
-    image: ghcr.io/loft-sh/vcluster-plugins/generic-crd-plugin:bAosUsT
+    image: ghcr.io/loft-sh/vcluster-generic-crd-plugin
     imagePullPolicy: IfNotPresent
     rbac:
       role:
@@ -29,6 +29,8 @@ plugin:
                     path: spec.routes..services..name
                   - op: rewriteName
                     path: spec.virtualhost.tls.secretName
+                    sync:
+                      secret: true
                 reversePatches:
                   - op: copyFromObject
                     fromPath: status
