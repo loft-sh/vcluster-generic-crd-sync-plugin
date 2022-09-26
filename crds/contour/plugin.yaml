@@ -31,6 +31,12 @@ plugin:
                     path: spec.virtualhost.tls.secretName
                     sync:
                       secret: true
+                  - op: rewriteName
+                    path: spec.tcpproxy.services..name
+                  - op: rewriteName
+                    path: spec.includes
+                    namePath: name
+                    namespacePath: namespace
                 reversePatches:
                   - op: copyFromObject
                     fromPath: status
