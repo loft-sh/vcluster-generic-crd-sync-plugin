@@ -199,16 +199,20 @@ type virtualToHostNameResolver struct {
 }
 
 func (r *virtualToHostNameResolver) TranslateName(name string, regex *regexp.Regexp, _ string) (string, error) {
+	return r.TranslateNameWithNamespace(name, r.namespace, regex, "")
+}
+
+func (r *virtualToHostNameResolver) TranslateNameWithNamespace(name string, namespace string, regex *regexp.Regexp, _ string) (string, error) {
 	if regex != nil {
-		return patchesregex.ProcessRegex(regex, name, func(name, namespace string) types.NamespacedName {
+		return patchesregex.ProcessRegex(regex, name, func(name, ns string) types.NamespacedName {
 			// if the regex match doesn't contain namespace - use the namespace set in this resolver
-			if namespace == "" {
-				namespace = r.namespace
+			if ns == "" {
+				ns = namespace
 			}
-			return types.NamespacedName{Namespace: r.targetNamespace, Name: translate.PhysicalName(name, namespace)}
+			return types.NamespacedName{Namespace: r.targetNamespace, Name: translate.PhysicalName(name, ns)}
 		}), nil
 	} else {
-		return translate.PhysicalName(name, r.namespace), nil
+		return translate.PhysicalName(name, namespace), nil
 	}
 }
 
@@ -246,6 +250,10 @@ func (r *virtualToHostNameResolver) TranslateLabelSelector(selector map[string]s
 	return s, nil
 }
 
+func (r *virtualToHostNameResolver) TranslateNamespaceRef(namespace string) (string, error) {
+	return r.targetNamespace, nil
+}
+
 type hostToVirtualNameResolver struct {
 	gvk schema.GroupVersionKind
 
@@ -275,11 +283,17 @@ func (r *hostToVirtualNameResolver) TranslateName(name string, regex *regexp.Reg
 
 	return n.Name, nil
 }
+func (r *hostToVirtualNameResolver) TranslateNameWithNamespace(name string, namespace string, regex *regexp.Regexp, path string) (string, error) {
+	return "", fmt.Errorf("translation not supported from host to virtual object")
+}
 func (r *hostToVirtualNameResolver) TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error) {
 	return nil, fmt.Errorf("translation not supported from host to virtual object")
 }
 func (r *hostToVirtualNameResolver) TranslateLabelSelector(selector map[string]string) (map[string]string, error) {
 	return nil, fmt.Errorf("translation not supported from host to virtual object")
+}
+func (r *hostToVirtualNameResolver) TranslateNamespaceRef(namespace string) (string, error) {
+	return "", fmt.Errorf("translation not supported from host to virtual object")
 }
 
 func validateFromVirtualConfig(config *config.FromVirtualCluster) error {

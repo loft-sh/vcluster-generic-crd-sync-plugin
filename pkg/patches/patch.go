@@ -18,6 +18,8 @@ type NameResolver interface {
 	TranslateName(name string, regex *regexp.Regexp, path string) (string, error)
 	TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error)
 	TranslateLabelSelector(selector map[string]string) (map[string]string, error)
+	TranslateNameWithNamespace(name string, namespace string, regex *regexp.Regexp, path string) (string, error)
+	TranslateNamespaceRef(namespace string) (string, error)
 }
 
 func ApplyPatches(obj1, obj2 client.Object, patchesConf []*config.Patch, reversePatchesConf []*config.Patch, nameResolver NameResolver) error {
