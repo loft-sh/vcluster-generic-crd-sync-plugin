@@ -567,6 +567,10 @@ func (r *memorizingHostToVirtualNameResolver) TranslateName(name string, _ *rege
 	r.mappings[key] = n.Name
 	return n.Name, nil
 }
+
+func (r *memorizingHostToVirtualNameResolver) TranslateNameWithNamespace(name string, namespace string, _ *regexp.Regexp, path string) (string, error) {
+	return "", fmt.Errorf("translation not supported from host to virtual object")
+}
 func (r *memorizingHostToVirtualNameResolver) TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error) {
 	return nil, fmt.Errorf("translation not supported from host to virtual object")
 }

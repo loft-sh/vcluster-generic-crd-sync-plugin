@@ -166,66 +166,146 @@ func RewriteName(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) er
 	}
 
 	for _, m := range matches {
-		if m.Kind == yaml.ScalarNode {
-			validated, err := ValidateAllConditions(obj1, m, patch.Conditions)
-			if err != nil {
-				return errors.Wrap(err, "validate conditions")
-			} else if !validated {
-				continue
-			}
+		switch m.Kind {
+		case yaml.ScalarNode:
+			err = ValidateAndTranslateName(obj1, m, patch, resolver, "")
+		case yaml.SequenceNode:
+			for _, subNode := range m.Content {
+				err = ProcessRewrite(subNode, patch, resolver)
 
-			translatedName, err := resolver.TranslateName(m.Value, patch.ParsedRegex, patch.FromPath)
-			if err != nil {
-				return err
+				if err != nil {
+					return err
+				}
 			}
+		case yaml.MappingNode:
+			err = ProcessRewrite(m, patch, resolver)
+		}
 
-			newNode, err := NewNode(translatedName)
-			if err != nil {
-				return errors.Wrap(err, "create node")
-			}
-
-			ReplaceNode(obj1, m, newNode)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func RewriteNamespaceRef(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {
-	matches, err := FindMatches(obj1, patch.Path)
-	if err != nil {
-		return errors.Wrap(err, "find matches")
+func ProcessRewrite(obj *yaml.Node, patch *config.Patch, resolver NameResolver) error {
+	var namespace string
+	var err error
+
+	if patch.NamespacePath != "" {
+		namespace, err = GetNamespace(obj, patch)
+
+		if err != nil {
+			return err
+		}
 	}
 
-	for _, m := range matches {
-		if m.Kind == yaml.ScalarNode {
-			// validated, err := ValidateAllConditions(obj1, m, patch.Conditions)
-			// if err != nil {
-			// 	return errors.Wrap(err, "validate conditions")
-			// } else if !validated {
-			// 	continue
-			// }
+	nameMatches, err := FindMatches(obj, patch.NamePath)
+	if err != nil {
+		return errors.Wrap(err, "find name matches")
+	}
 
-			// translatedName, err := resolver.TranslateName(m.Value, patch.ParsedRegex, patch.FromPath)
-			// if err != nil {
-			// 	return err
-			// }
+	for _, nameMatch := range nameMatches {
+		err = ValidateAndTranslateName(obj, nameMatch, patch, resolver, namespace)
 
-			translatedNamespace, err := resolver.TranslateNamespaceRef(m.Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Translate namespace
+	if namespace != "" {
+		namespaceMatches, err := FindMatches(obj, patch.NamespacePath)
+		if err != nil {
+			return errors.Wrap(err, "find namespace matches")
+		}
+
+		for _, namespaceMatch := range namespaceMatches {
+			err = ValidateAndTranslateNamespace(obj, namespaceMatch, patch, resolver)
+
 			if err != nil {
 				return err
 			}
-
-			newNode, err := NewNode(translatedNamespace)
-			if err != nil {
-				return errors.Wrap(err, "create node")
-			}
-
-			ReplaceNode(obj1, m, newNode)
 		}
 	}
 
 	return nil
+}
+
+func ValidateAndTranslateName(obj *yaml.Node, match *yaml.Node, patch *config.Patch, resolver NameResolver, namespace string) error {
+	validated, err := ValidateAllConditions(obj, match, patch.Conditions)
+	if err != nil {
+		return errors.Wrap(err, "validate conditions")
+	} else if !validated {
+		return nil
+	}
+
+	var translatedName string
+
+	if namespace != "" {
+		translatedName, err = resolver.TranslateNameWithNamespace(match.Value, namespace, patch.ParsedRegex, patch.FromPath)
+	} else {
+		translatedName, err = resolver.TranslateName(match.Value, patch.ParsedRegex, patch.FromPath)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	newNode, err := NewNode(translatedName)
+	if err != nil {
+		return errors.Wrap(err, "create node")
+	}
+
+	ReplaceNode(obj, match, newNode)
+
+	return nil
+}
+
+func ValidateAndTranslateNamespace(obj *yaml.Node, match *yaml.Node, patch *config.Patch, resolver NameResolver) error {
+	validated, err := ValidateAllConditions(obj, match, patch.Conditions)
+	if err != nil {
+		return errors.Wrap(err, "validate conditions")
+	} else if !validated {
+		return nil
+	}
+
+	translatedNamespace, err := resolver.TranslateNamespaceRef(match.Value)
+	if err != nil {
+		return err
+	}
+
+	newNode, err := NewNode(translatedNamespace)
+	if err != nil {
+		return errors.Wrap(err, "create node")
+	}
+
+	ReplaceNode(obj, match, newNode)
+
+	return nil
+}
+
+func GetNamespace(obj *yaml.Node, patch *config.Patch) (string, error) {
+	var namespace string
+
+	matches, err := FindMatches(obj, patch.NamespacePath)
+	if err != nil {
+		return namespace, errors.Wrap(err, "find matches namespace")
+	}
+
+	for _, m := range matches {
+		validated, err := ValidateAllConditions(obj, m, patch.Conditions)
+		if err != nil {
+			return namespace, errors.Wrap(err, "validate matchNamespace conditions")
+		} else if !validated {
+			continue
+		}
+
+		namespace = m.Value
+	}
+
+	return namespace, nil
 }
 
 func RewriteLabelSelector(obj1 *yaml.Node, patch *config.Patch, resolver NameResolver) error {

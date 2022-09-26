@@ -119,6 +119,12 @@ type Patch struct {
 	// Path is the path of the patch
 	Path string `yaml:"path,omitempty" json:"path,omitempty"`
 
+	// NamePath is the path to the name of a child resource within Path
+	NamePath string `yaml:"namePath,omitempty" json:"namePath,omitempty"`
+
+	// NamespacePath is path to the namespace of a child resource within Path
+	NamespacePath string `yaml:"namespacePath,omitempty" json:"namespacePath,omitempty"`
+
 	// Value is the new value to be set to the path
 	Value interface{} `yaml:"value,omitempty" json:"value,omitempty"`
 
@@ -144,7 +150,6 @@ type PatchType string
 
 const (
 	PatchTypeRewriteName                     = "rewriteName"
-	PatchTypeRewriteNamespaceRef             = "rewriteNamespaceRef"
 	PatchTypeRewriteLabelSelector            = "rewriteLabelSelector"
 	PatchTypeRewriteLabelExpressionsSelector = "rewriteLabelExpressionsSelector"
 

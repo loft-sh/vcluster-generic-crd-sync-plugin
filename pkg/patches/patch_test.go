@@ -1,13 +1,18 @@
 package patches
 
 import (
+	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
+	patchesregex "github.com/loft-sh/vcluster-generic-crd-plugin/pkg/patches/regex"
+	"github.com/loft-sh/vcluster-sdk/translate"
 	yaml "gopkg.in/yaml.v3"
 	"gotest.tools/assert"
 )
@@ -21,6 +26,7 @@ type patchTestCase struct {
 
 	nameResolver NameResolver
 	expected     string
+	expectedErr  error
 }
 
 // TODO update tests
@@ -223,6 +229,123 @@ test2: {}`,
         test: test
         test123: test123`,
 		},
+		{
+			name: "rewrite name",
+			patch: &config.Patch{
+				Operation: config.PatchTypeRewriteName,
+				Path:      "name",
+			},
+			nameResolver: &fakeVirtualToHostNameResolver{
+				namespace:       "default",
+				targetNamespace: "vcluster",
+			},
+			obj1:     `name: abc`,
+			expected: fmt.Sprint(`name: abc-x-default-x-`, translate.Suffix),
+		},
+		{
+			name: "rewrite name - invalid object",
+			patch: &config.Patch{
+				Operation: config.PatchTypeRewriteName,
+				Path:      "name{]",
+			},
+			obj1:        `name: {}`,
+			expectedErr: errors.New("parsing path"),
+		},
+		{
+			name: "rewrite name - namespace based",
+			patch: &config.Patch{
+				Operation:     config.PatchTypeRewriteName,
+				Path:          "root.list",
+				NamePath:      "nm",
+				NamespacePath: "ns",
+			},
+			nameResolver: &fakeVirtualToHostNameResolver{
+				namespace:       "default",
+				targetNamespace: "vcluster",
+			},
+			obj1: `root:
+  list:
+    - nm: abc
+      ns: pqr
+    - nm: def
+      ns: xyz`,
+			expected: `root:
+    list:
+        - nm: abc-x-pqr-x-` + fmt.Sprint(translate.Suffix) + `
+          ns: vcluster
+        - nm: def-x-xyz-x-` + fmt.Sprint(translate.Suffix) + `
+          ns: vcluster`,
+		},
+		{
+			name: "rewrite name - multiple - no namespace",
+			patch: &config.Patch{
+				Operation: config.PatchTypeRewriteName,
+				Path:      "root.list",
+				NamePath:  "nm",
+			},
+			nameResolver: &fakeVirtualToHostNameResolver{
+				namespace:       "default",
+				targetNamespace: "vcluster",
+			},
+			obj1: `root:
+  list:
+    - nm: abc
+      ns: pqr
+    - nm: def
+      ns: pqr`,
+			expected: `root:
+    list:
+        - nm: abc-x-default-x-` + fmt.Sprint(translate.Suffix) + `
+          ns: pqr
+        - nm: def-x-default-x-` + fmt.Sprint(translate.Suffix) + `
+          ns: pqr`,
+		},
+		{
+			name: "rewrite name - multiple name matches",
+			patch: &config.Patch{
+				Operation:     config.PatchTypeRewriteName,
+				Path:          "root.includes",
+				NamePath:      "names..nm",
+				NamespacePath: "namespace",
+			},
+			nameResolver: &fakeVirtualToHostNameResolver{
+				namespace:       "default",
+				targetNamespace: "vcluster",
+			},
+			obj1: `root:
+  includes:
+    - names:
+        - nm: abc
+        - nm: def
+      namespace: pqr`,
+			expected: `root:
+    includes:
+        - names:
+            - nm: abc-x-pqr-x-` + fmt.Sprint(translate.Suffix) + `
+            - nm: def-x-pqr-x-` + fmt.Sprint(translate.Suffix) + `
+          namespace: vcluster`,
+		},
+		{
+			name: "rewrite name - single name match - non array",
+			patch: &config.Patch{
+				Operation:     config.PatchTypeRewriteName,
+				Path:          "root.includes",
+				NamePath:      "nm",
+				NamespacePath: "namespace",
+			},
+			nameResolver: &fakeVirtualToHostNameResolver{
+				namespace:       "default",
+				targetNamespace: "vcluster",
+			},
+			obj1: `root:
+  includes:
+    nm: abc
+    namespace: pqr`,
+			expected: `root:
+    includes:
+        nm: abc-x-pqr-x-` + fmt.Sprint(translate.Suffix) + `
+        namespace: vcluster`,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -236,10 +359,16 @@ test2: {}`,
 		}
 
 		err = applyPatch(obj1, obj2, testCase.patch, testCase.nameResolver)
-		assert.NilError(t, err, "error in applying patch in test case %s", testCase.name)
+		if testCase.expectedErr != nil {
+			assert.ErrorContains(t, err, testCase.expectedErr.Error())
+			continue
+		} else {
+			assert.NilError(t, err, "error in applying patch in test case %s", testCase.name)
+		}
 
 		// compare output
 		out, err := yaml.Marshal(obj1)
+
 		assert.NilError(t, err, "error in yaml marshal in test case %s", testCase.name)
 		assert.Equal(t, strings.TrimSpace(string(out)), testCase.expected, "error in comparison in test case %s", testCase.name)
 	}
@@ -248,6 +377,10 @@ test2: {}`,
 type fakeNameResolver struct{}
 
 func (f *fakeNameResolver) TranslateName(name string, _ *regexp.Regexp, path string) (string, error) {
+	return name, nil
+}
+
+func (f *fakeNameResolver) TranslateNameWithNamespace(name string, namespace string, _ *regexp.Regexp, path string) (string, error) {
 	return name, nil
 }
 
@@ -273,4 +406,50 @@ func (f *fakeNameResolver) TranslateLabelSelector(selector map[string]string) (m
 
 func (f *fakeNameResolver) TranslateNamespaceRef(name string) (string, error) {
 	return "default", nil
+}
+
+type fakeVirtualToHostNameResolver struct {
+	namespace       string
+	targetNamespace string
+}
+
+func (r *fakeVirtualToHostNameResolver) TranslateName(name string, regex *regexp.Regexp, _ string) (string, error) {
+	return r.TranslateNameWithNamespace(name, r.namespace, regex, "")
+}
+
+func (r *fakeVirtualToHostNameResolver) TranslateNameWithNamespace(name string, namespace string, regex *regexp.Regexp, _ string) (string, error) {
+	if regex != nil {
+		return patchesregex.ProcessRegex(regex, name, func(name, ns string) types.NamespacedName {
+			// if the regex match doesn't contain namespace - use the namespace set in this resolver
+			if ns == "" {
+				ns = namespace
+			}
+			return types.NamespacedName{Namespace: r.targetNamespace, Name: translate.PhysicalName(name, ns)}
+		}), nil
+	} else {
+		return translate.PhysicalName(name, namespace), nil
+	}
+}
+
+func (r *fakeVirtualToHostNameResolver) TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error) {
+	if selector == nil {
+		return nil, nil
+	}
+
+	if selector.MatchLabels == nil {
+		selector.MatchLabels = map[string]string{}
+	}
+	selector.MatchLabels["test"] = "test"
+	return selector, nil
+}
+func (r *fakeVirtualToHostNameResolver) TranslateLabelSelector(selector map[string]string) (map[string]string, error) {
+	if selector == nil {
+		return nil, nil
+	}
+	selector["test"] = "test"
+	return selector, nil
+}
+
+func (r *fakeVirtualToHostNameResolver) TranslateNamespaceRef(namespace string) (string, error) {
+	return r.targetNamespace, nil
 }
