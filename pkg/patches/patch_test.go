@@ -346,6 +346,28 @@ test2: {}`,
         nm: abc-x-pqr-x-` + fmt.Sprint(translate.Suffix) + `
         namespace: vcluster`,
 		},
+		{
+			name: "rewrite name - multiple name matches - multiple namespace references",
+			patch: &config.Patch{
+				Operation:     config.PatchTypeRewriteName,
+				Path:          "root.includes",
+				NamePath:      "..names..nm",
+				NamespacePath: "..namespaces..ns",
+			},
+			nameResolver: &fakeVirtualToHostNameResolver{
+				namespace:       "default",
+				targetNamespace: "vcluster",
+			},
+			obj1: `root:
+  includes:
+    - names:
+        - nm: abc
+        - nm: def
+      namespaces:
+        - ns: pqr
+        - ns: xyz`,
+			expectedErr: errors.New("found multiple namespace references"),
+		},
 	}
 
 	for _, testCase := range testCases {
