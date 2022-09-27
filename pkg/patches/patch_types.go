@@ -294,14 +294,11 @@ func GetNamespace(obj *yaml.Node, patch *config.Patch) (string, error) {
 		return namespace, errors.Wrap(err, "find matches namespace")
 	}
 
-	for _, m := range matches {
-		validated, err := ValidateAllConditions(obj, m, patch.Conditions)
-		if err != nil {
-			return namespace, errors.Wrap(err, "validate matchNamespace conditions")
-		} else if !validated {
-			continue
-		}
+	if len(matches) > 1 {
+		return namespace, errors.New("found multiple namespace references")
+	}
 
+	for _, m := range matches {
 		namespace = m.Value
 	}
 
