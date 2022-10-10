@@ -105,7 +105,7 @@ func (b *backSyncController) Name() string {
 var _ syncer.IndicesRegisterer = &backSyncController{}
 
 func (b *backSyncController) RegisterIndices(ctx *synccontext.RegisterContext) error {
-	return ctx.PhysicalManager.GetCache().IndexField(ctx.Context, b.resource(), IndexByVirtualName, func(object client.Object) []string {
+	err := ctx.PhysicalManager.GetCache().IndexField(ctx.Context, b.resource(), IndexByVirtualName, func(object client.Object) []string {
 		if b.containsBackSyncNameAnnotations(object) {
 			annotations := object.GetAnnotations()
 			return []string{annotations[translator.NamespaceAnnotation] + "/" + annotations[translator.NameAnnotation]}
@@ -113,6 +113,14 @@ func (b *backSyncController) RegisterIndices(ctx *synccontext.RegisterContext) e
 
 		return []string{}
 	})
+
+	if err != nil && strings.Contains(err.Error(), "indexer conflict") {
+		// Field IndexByVirtualName already exists in the index,
+		// added by previous backsyncer, hence skip adding again
+		return nil
+	}
+
+	return err
 }
 
 func (b *backSyncController) resource() client.Object {
