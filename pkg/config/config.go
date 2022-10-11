@@ -25,7 +25,7 @@ type SyncBase struct {
 
 	// ID is the id of the controller. This is optional and only necessary if you have multiple syncBack or fromVirtualSyncer
 	// controllers that target the same group version kind.
-	ID string `yaml:"id,omitempty" json:"name,omitempty"`
+	ID string `yaml:"id,omitempty" json:"id,omitempty"`
 
 	// Patches are the patches to apply on the virtual cluster objects
 	// when syncing them from the host cluster
