@@ -435,7 +435,7 @@ func (f *fakeNameResolver) TranslateNameWithNamespace(name string, namespace str
 	return name, nil
 }
 
-func (r *fakeNameResolver) TranslateLabelKey(key string) (string, error) {
+func (f *fakeNameResolver) TranslateLabelKey(key string) (string, error) {
 	return key, nil
 }
 
