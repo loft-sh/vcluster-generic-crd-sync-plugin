@@ -51,8 +51,7 @@ type SyncBack struct {
 	SyncBase `yaml:",inline" json:",inline"`
 
 	// Selectors are the SyncBackSelector definitions to select the objects
-	// in the host cluster thatwill be synced to the virtual cluster
-	// If empty will select all objects.
+	// in the host cluster that will be synced to the virtual cluster
 	Selectors []*SyncBackSelector `yaml:"selectors,omitempty" json:"selectors,omitempty"`
 }
 
