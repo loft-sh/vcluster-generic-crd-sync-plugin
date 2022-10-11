@@ -150,6 +150,7 @@ type PatchType string
 
 const (
 	PatchTypeRewriteName                     = "rewriteName"
+	PatchTypeRewriteLabelKey                 = "rewriteLabelKey"
 	PatchTypeRewriteLabelSelector            = "rewriteLabelSelector"
 	PatchTypeRewriteLabelExpressionsSelector = "rewriteLabelExpressionsSelector"
 

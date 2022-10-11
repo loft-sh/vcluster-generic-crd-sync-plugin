@@ -238,6 +238,11 @@ func (r *virtualToHostNameResolver) TranslateLabelExpressionsSelector(selector *
 	}
 	return s, nil
 }
+
+func (r *virtualToHostNameResolver) TranslateLabelKey(key string) (string, error) {
+	return translator.ConvertLabelKey(key), nil
+}
+
 func (r *virtualToHostNameResolver) TranslateLabelSelector(selector map[string]string) (map[string]string, error) {
 	s := map[string]string{}
 	if selector != nil {
@@ -284,6 +289,9 @@ func (r *hostToVirtualNameResolver) TranslateName(name string, regex *regexp.Reg
 	return n.Name, nil
 }
 func (r *hostToVirtualNameResolver) TranslateNameWithNamespace(name string, namespace string, regex *regexp.Regexp, path string) (string, error) {
+	return "", fmt.Errorf("translation not supported from host to virtual object")
+}
+func (r *hostToVirtualNameResolver) TranslateLabelKey(key string) (string, error) {
 	return "", fmt.Errorf("translation not supported from host to virtual object")
 }
 func (r *hostToVirtualNameResolver) TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error) {
