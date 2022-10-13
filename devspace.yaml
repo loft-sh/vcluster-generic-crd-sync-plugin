@@ -2,7 +2,7 @@ version: v2beta1
 name: generic-crd-plugin
 
 vars:
-  PLUGIN_IMAGE: ghcr.io/loft-sh/vcluster-plugins/generic-crd-plugin
+  PLUGIN_IMAGE: ghcr.io/loft-sh/vcluster-generic-crd-plugin
   DEVSPACE_FLAGS: "-n vcluster"
 
 images:
