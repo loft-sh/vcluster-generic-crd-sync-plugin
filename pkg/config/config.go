@@ -25,7 +25,7 @@ type SyncBase struct {
 
 	// ID is the id of the controller. This is optional and only necessary if you have multiple syncBack or fromVirtualSyncer
 	// controllers that target the same group version kind.
-	ID string `yaml:"id,omitempty" json:"name,omitempty"`
+	ID string `yaml:"id,omitempty" json:"id,omitempty"`
 
 	// Patches are the patches to apply on the virtual cluster objects
 	// when syncing them from the host cluster
@@ -51,8 +51,7 @@ type SyncBack struct {
 	SyncBase `yaml:",inline" json:",inline"`
 
 	// Selectors are the SyncBackSelector definitions to select the objects
-	// in the host cluster thatwill be synced to the virtual cluster
-	// If empty will select all objects.
+	// in the host cluster that will be synced to the virtual cluster
 	Selectors []*SyncBackSelector `yaml:"selectors,omitempty" json:"selectors,omitempty"`
 }
 
@@ -150,6 +149,7 @@ type PatchType string
 
 const (
 	PatchTypeRewriteName                     = "rewriteName"
+	PatchTypeRewriteLabelKey                 = "rewriteLabelKey"
 	PatchTypeRewriteLabelSelector            = "rewriteLabelSelector"
 	PatchTypeRewriteLabelExpressionsSelector = "rewriteLabelExpressionsSelector"
 

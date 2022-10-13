@@ -31,11 +31,11 @@ plugin:
                     # Set the value below according to the .spec.serviceMonitorSelector of your Prometheus
                     value:
                       release: prometheus
-                  - op: rewriteName
+                  - op: rewriteLabelKey
                     path: .spec.jobLabel
-                  - op: rewriteName
+                  - op: rewriteLabelKey
                     path: .spec.targetLabels[*]
-                  - op: rewriteName
+                  - op: rewriteLabelKey
                     path: .spec.podTargetLabels[*]
                   - op: rewriteName
                     path: .spec.endpoints[*]

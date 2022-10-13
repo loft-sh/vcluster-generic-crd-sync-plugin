@@ -12,6 +12,7 @@ import (
 
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	patchesregex "github.com/loft-sh/vcluster-generic-crd-plugin/pkg/patches/regex"
+	"github.com/loft-sh/vcluster-sdk/syncer/translator"
 	"github.com/loft-sh/vcluster-sdk/translate"
 	yaml "gopkg.in/yaml.v3"
 	"gotest.tools/assert"
@@ -368,6 +369,34 @@ test2: {}`,
         - ns: xyz`,
 			expectedErr: errors.New("found multiple namespace references"),
 		},
+		{
+			name: "rewrite label key",
+			patch: &config.Patch{
+				Operation: config.PatchTypeRewriteLabelKey,
+				Path:      "test.label",
+			},
+			nameResolver: &fakeVirtualToHostNameResolver{},
+			obj1: `test:
+    label: myLabel`,
+			expected: `test:
+    label: vcluster.loft.sh/label-suffix-x-cb4e76426f`,
+		},
+		{
+			name: "rewrite label key - many",
+			patch: &config.Patch{
+				Operation: config.PatchTypeRewriteLabelKey,
+				Path:      "test.labels[*]",
+			},
+			nameResolver: &fakeVirtualToHostNameResolver{},
+			obj1: `test:
+    labels: 
+      - myLabel
+      - myLabel2`,
+			expected: `test:
+    labels:
+        - vcluster.loft.sh/label-suffix-x-cb4e76426f
+        - vcluster.loft.sh/label-suffix-x-bae4a2c2e5`,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -404,6 +433,10 @@ func (f *fakeNameResolver) TranslateName(name string, _ *regexp.Regexp, path str
 
 func (f *fakeNameResolver) TranslateNameWithNamespace(name string, namespace string, _ *regexp.Regexp, path string) (string, error) {
 	return name, nil
+}
+
+func (f *fakeNameResolver) TranslateLabelKey(key string) (string, error) {
+	return key, nil
 }
 
 func (f *fakeNameResolver) TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error) {
@@ -453,6 +486,10 @@ func (r *fakeVirtualToHostNameResolver) TranslateNameWithNamespace(name string, 
 	}
 }
 
+func (r *fakeVirtualToHostNameResolver) TranslateLabelKey(key string) (string, error) {
+	return translator.ConvertLabelKey(key), nil
+}
+
 func (r *fakeVirtualToHostNameResolver) TranslateLabelExpressionsSelector(selector *metav1.LabelSelector) (*metav1.LabelSelector, error) {
 	if selector == nil {
 		return nil, nil
@@ -464,6 +501,7 @@ func (r *fakeVirtualToHostNameResolver) TranslateLabelExpressionsSelector(select
 	selector.MatchLabels["test"] = "test"
 	return selector, nil
 }
+
 func (r *fakeVirtualToHostNameResolver) TranslateLabelSelector(selector map[string]string) (map[string]string, error) {
 	if selector == nil {
 		return nil, nil

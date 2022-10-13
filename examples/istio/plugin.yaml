@@ -1,0 +1,117 @@
+# Plugin Definition below. This is essentially a valid helm values file that will be merged
+# with the other vcluster values during vcluster create or helm install.
+
+# Setting these podLabels and coredns.podLabels should ensure that vcluster
+# control plane pods won't have the sidecar injected, as this is unnecessary
+# for most use cases
+podLabels:
+  sidecar.istio.io/inject: "false"
+coredns:
+  podLabels:
+    sidecar.istio.io/inject: "false"
+
+# Adding the --sync-labels argument to the syncer will propagate sidecar.istio.io/inject
+# label from the workloads(pods) created in the vcluster to their representation in the
+# host cluster, which would allow vcluster users to control the sidecar injection
+# Comment out 3 lines below to enable this, and merge this with your other syncer values
+# if you have some.
+# syncer:
+#   extraArgs:
+#     - "--sync-labels=sidecar.istio.io/inject"
+
+plugin:
+  generic-crd-plugin:
+    image: ghcr.io/loft-sh/vcluster-generic-crd-plugin:0.0.1-alpha.3
+    imagePullPolicy: IfNotPresent
+    rbac:
+      # extra namespaced permissions required for this plugin configuration
+      role:
+        extraRules:
+          - apiGroups: ["networking.istio.io"]
+            resources: ["virtualservices", "destinationrules", "gateways", "serviceentries"]
+            verbs: ["create", "delete", "patch", "update", "get", "list", "watch"]
+      # extra cluster scoper permissions required for the plugin
+      clusterRole:
+        extraRules:
+          - apiGroups: ["apiextensions.k8s.io"]
+            resources: ["customresourcedefinitions"]
+            verbs: ["get", "list", "watch"]
+    env:
+      - name: CONFIG
+        value: |-
+          version: v1beta1
+          mappings:
+            - fromVirtualCluster:
+                apiVersion: networking.istio.io/v1alpha3
+                kind: Gateway
+                patches:
+                  - op: rewriteName
+                    path: .spec.tls.credentialName
+                    sync:
+                      secret: true
+                reversePatches:
+                  - op: copyFromObject
+                    fromPath: status
+                    path: status
+
+            - fromVirtualCluster:
+                apiVersion: networking.istio.io/v1alpha3
+                kind: VirtualService
+                patches:
+                  - op: rewriteName
+                    path: .spec.hosts[*]
+                    regex: &svcHost >
+                      ^$NAME((\.$NAMESPACE)?(\.svc(\.cluster\.local)?){1})?$
+                  - op: rewriteName
+                    path: .spec.gateways[*]
+                    conditions:
+                      - notEqual: "mesh"
+                  - op: rewriteName
+                    path: .spec.http[*].route[*].destination.host
+                    regex: *svcHost
+                reversePatches:
+                  - op: copyFromObject
+                    fromPath: status
+                    path: status
+
+            - fromVirtualCluster:
+                apiVersion: networking.istio.io/v1alpha3
+                kind: DestinationRule
+                patches:
+                  - op: rewriteName
+                    path: .spec.host
+                    regex: *svcHost
+                  - op: rewriteName
+                    path: .spec.trafficPolicy.tls.credentialName
+                    sync:
+                      secret: true
+                  - op: rewriteName
+                    path: .spec.trafficPolicy.portLevelSettings[*].tls.credentialName
+                    sync:
+                      secret: true
+                  - op: rewriteName
+                    path: .spec.trafficPolicy.tunnel.targetHost
+                    regex: *svcHost
+                  - op: rewriteLabelSelector
+                    path: .spec.subsets[*].labels
+                  - op: rewriteName
+                    path: .spec.subsets[*].trafficPolicy.tls.credentialName
+                    sync:
+                      secret: true
+                  - op: rewriteName
+                    path: .spec.subsets[*].trafficPolicy.portLevelSettings[*].tls.credentialName
+                    sync:
+                      secret: true
+                  - op: rewriteName
+                    path: .spec.subsets[*].trafficPolicy.tunnel.targetHost
+                    regex: *svcHost
+                  - op: replace
+                    path: .spec.exportTo
+                    value: "."
+                  - op: rewriteLabelSelector
+                    path: .spec.workloadSelector
+
+                reversePatches:
+                  - op: copyFromObject
+                    fromPath: status
+                    path: status
