@@ -21,8 +21,8 @@ coredns:
 
 plugin:
   generic-crd-plugin:
-    image: ghcr.io/loft-sh/vcluster-generic-crd-plugin
-    imagePullPolicy: IfNotPresent
+    image: ghcr.io/loft-sh/vcluster-generic-crd-plugin:latest
+    imagePullPolicy: Always
     rbac:
       # extra namespaced permissions required for this plugin configuration
       role:
