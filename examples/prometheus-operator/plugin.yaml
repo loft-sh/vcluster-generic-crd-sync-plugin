@@ -2,8 +2,8 @@
 # with the other vcluster values during vcluster create or helm install.
 plugin:
   generic-crd-plugin:
-    image: ghcr.io/loft-sh/vcluster-generic-crd-plugin
-    imagePullPolicy: IfNotPresent
+    image: ghcr.io/loft-sh/vcluster-generic-crd-plugin:latest
+    imagePullPolicy: Always
     rbac:
       role:
         extraRules:
