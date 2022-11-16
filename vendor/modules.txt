@@ -129,7 +129,7 @@ github.com/json-iterator/go
 # github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de
 ## explicit
 github.com/liggitt/tabwriter
-# github.com/loft-sh/vcluster-sdk v0.3.2
+# github.com/loft-sh/vcluster-sdk v0.4.0
 ## explicit; go 1.17
 github.com/loft-sh/vcluster-sdk/applier
 github.com/loft-sh/vcluster-sdk/clienthelper
@@ -141,6 +141,7 @@ github.com/loft-sh/vcluster-sdk/syncer
 github.com/loft-sh/vcluster-sdk/syncer/context
 github.com/loft-sh/vcluster-sdk/syncer/translator
 github.com/loft-sh/vcluster-sdk/translate
+github.com/loft-sh/vcluster-sdk/translate/util
 # github.com/mailru/easyjson v0.7.6
 ## explicit; go 1.12
 github.com/mailru/easyjson/buffer
