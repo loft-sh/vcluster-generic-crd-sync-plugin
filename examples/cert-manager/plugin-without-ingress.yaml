@@ -40,6 +40,8 @@ plugin:
                   - op: rewriteName
                     path: spec.issuerRef.name
                   - op: rewriteName
+                    path: spec.keystores.pkcs12.passwordSecretRef.name
+                  - op: rewriteName
                     path: spec.secretName
                 reversePatches:
                   - op: copyFromObject
