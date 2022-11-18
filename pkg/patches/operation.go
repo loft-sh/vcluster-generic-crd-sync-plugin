@@ -8,7 +8,9 @@ import (
 
 func ReplaceNode(doc *yaml.Node, match *yaml.Node, value *yaml.Node) {
 	parent := Find(doc, ContainsChild(match))
-	parent.Content = replaceChildAtIndex(parent, match, value)
+	if parent != nil {
+		parent.Content = replaceChildAtIndex(parent, match, value)
+	}
 }
 
 func Find(doc *yaml.Node, predicate func(*yaml.Node) bool) *yaml.Node {
