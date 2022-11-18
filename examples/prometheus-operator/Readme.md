@@ -1,7 +1,7 @@
 # How to use vcluster-generic-crd-sync-plugin to sync Prometheus Operator resources
 **Note**: Currently this plugin is still underdevelopment and is provided without any commercial support. You are encouraged to report problems via Issues in this repo. For the help with troubleshooting you can post to the "vcluster" channel in our Slack - https://slack.loft.sh/  
-**Note**: The configuration provided here is an example. Please review and update it to match your environment and use case.
-
+**Note**: The configuration provided here is an example. Please review and update it to match your environment and use case.  
+**Warning**: namespace selectors are currently not supported, so with the provided configuration the `.spec.namespaceSelector` field is ignored and Services from all vcluster namespaces are selected. You can upvote [issue #15](https://github.com/loft-sh/vcluster-generic-crd-sync-plugin/issues/15) if the namespace selectors are critical for your use cases.
 
 Prerequisite for installation are the Prometheus CRDs installed in the host cluster where vcluster will be installed.
 

@@ -37,8 +37,6 @@ plugin:
                     path: .spec.targetLabels[*]
                   - op: rewriteLabelKey
                     path: .spec.podTargetLabels[*]
-                  - op: rewriteName
-                    path: .spec.endpoints[*]
                   - op: rewriteLabelExpressionsSelector
                     path: .spec.selector
                     # TODO: Dev: add transformed namespace selectors to the label selectors (.spec.selector)
@@ -48,3 +46,57 @@ plugin:
                     value:
                       any: false
                       matchNames: []
+                  - op: rewriteName
+                    path: .spec.endpoints[*].tlsConfig.ca.secret
+                    sync:
+                      secret: true
+                  - op: rewriteName
+                    path: .spec.endpoints[*].tlsConfig.ca.configMap
+                    sync:
+                      configmap: true
+                  - op: rewriteName
+                    path: .spec.endpoints[*].tlsConfig.cert.secret
+                    sync:
+                      secret: true
+                  - op: rewriteName
+                    path: .spec.endpoints[*].tlsConfig.cert.configMap
+                    sync:
+                      configmap: true
+                  - op: rewriteName
+                    path: .spec.endpoints[*].tlsConfig.bearerTokenSecret.name
+                    sync:
+                      secret: true
+                  - op: rewriteName
+                    path: .spec.endpoints[*].tlsConfig.authorization.credentials.name
+                    sync:
+                      secret: true
+                  - op: rewriteName
+                    path: .spec.endpoints[*].tlsConfig.basicAuth.username.name
+                    sync:
+                      secret: true
+                  - op: rewriteName
+                    path: .spec.endpoints[*].tlsConfig.basicAuth.password.name
+                    sync:
+                      secret: true
+                  - op: rewriteName
+                    path: .spec.endpoints[*].tlsConfig.oauth2.clientId.secret
+                    sync:
+                      secret: true
+                  - op: rewriteName
+                    path: .spec.endpoints[*].tlsConfig.oauth2.clientId.configMap
+                    sync:
+                      configmap: true
+                  - op: rewriteName
+                    path: .spec.endpoints[*].tlsConfig.oauth2.clientSecret.name
+                    sync:
+                      secret: true
+                  - op: rewriteName
+                    path: .spec.endpoints[*].tlsConfig.oauth2.tokenUrl
+                    # regex below should translate service urls only
+                    regex: >
+                      ^http(s)?://$NAME((\.$NAMESPACE)?(\.svc(\.cluster\.local)?){1})?(/|$)
+                  - op: rewriteName
+                    path: .spec.endpoints[*].proxyUrl
+                    # regex below should translate service urls only
+                    regex: >
+                      ^http(s)?://$NAME((\.$NAMESPACE)?(\.svc(\.cluster\.local)?){1})?(/|$)
