@@ -35,6 +35,9 @@ deployments:
                   - apiGroups: ["cert-manager.io"]
                     resources: ["issuers", "certificates", "certificaterequests"]
                     verbs: ["create", "delete", "patch", "update", "get", "list", "watch"]
+                  - apiGroups: ["monitoring.coreos.com"]
+                    resources: ["servicemonitors"]
+                    verbs: ["create", "delete", "patch", "update", "get", "list", "watch"]
             env:
               # Config for testing
               # run `make install-cert-manager` within the host kube context before using
@@ -59,6 +62,10 @@ deployments:
 dev:
   vcluster:
     imageSelector: ${PLUGIN_IMAGE}
+    resources:
+      limits:
+        cpu: "0" # to prevent CPU throttling during compilation
+        memory: "0" # to prevent OOM kills which can happen during compilation
     terminal:
       command: "./devspace_start.sh"
     ports:
