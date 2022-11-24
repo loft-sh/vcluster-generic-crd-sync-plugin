@@ -397,6 +397,22 @@ test2: {}`,
         - vcluster.loft.sh/label-suffix-x-cb4e76426f
         - vcluster.loft.sh/label-suffix-x-bae4a2c2e5`,
 		},
+		{
+			name: "rewrite name should not panic when match is not scalar",
+			patch: &config.Patch{
+				Operation: config.PatchTypeRewriteName,
+				Path:      "test.endpoints[*]",
+			},
+			nameResolver: &fakeVirtualToHostNameResolver{},
+			obj1: `test:
+    endpoints: 
+      - name: abc
+      - name: def`,
+			expected: `test:
+    endpoints:
+        - name: abc
+        - name: def`,
+		},
 	}
 
 	for _, testCase := range testCases {

@@ -207,6 +207,9 @@ func ProcessRewrite(obj *yaml.Node, patch *config.Patch, resolver NameResolver) 
 	}
 
 	for _, nameMatch := range nameMatches {
+		if nameMatch.Kind != yaml.ScalarNode {
+			continue
+		}
 		err = ValidateAndTranslateName(obj, nameMatch, patch, resolver, namespace)
 
 		if err != nil {
@@ -222,6 +225,9 @@ func ProcessRewrite(obj *yaml.Node, patch *config.Patch, resolver NameResolver) 
 		}
 
 		for _, namespaceMatch := range namespaceMatches {
+			if namespaceMatch.Kind != yaml.ScalarNode {
+				continue
+			}
 			err = ValidateAndTranslateNamespace(obj, namespaceMatch, patch, resolver)
 
 			if err != nil {
