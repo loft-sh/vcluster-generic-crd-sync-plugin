@@ -3,7 +3,7 @@
 plugin:
   contour:
     image: ghcr.io/loft-sh/vcluster-generic-crd-plugin:latest
-    imagePullPolicy: Always
+    imagePullPolicy: IfNotPresent
     rbac:
       role:
         extraRules:
