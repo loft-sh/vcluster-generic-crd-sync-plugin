@@ -1,0 +1,50 @@
+# Plugin Definition below. This is essentially a valid helm values file that will be merged
+# with the other vcluster values during vcluster create or helm install.
+plugin:
+  generic-crd-plugin:
+    image: ghcr.io/loft-sh/vcluster-generic-crd-plugin:latest
+    imagePullPolicy: Always
+    rbac:
+      role:
+        extraRules:
+          - apiGroups: ["traefik.containo.us"]
+            resources: ["middlewares", "ingressroutes","traefikservices"]
+            verbs: ["create", "delete", "patch", "update", "get", "list", "watch"]
+      clusterRole:
+        extraRules:
+          - apiGroups: ["apiextensions.k8s.io"]
+            resources: ["customresourcedefinitions"]
+            verbs: ["get", "list", "watch"]
+    env:
+      - name: CONFIG
+        value: |-
+          version: v1beta1
+          mappings:
+            - fromVirtualCluster:
+                apiVersion: traefik.containo.us/v1
+                kind: IngressRoute
+                patches:
+                  - op: rewriteName
+                    path: spec.routes.middlewares.name
+                  - op: rewriteName
+                    path: spec.routes.services.name
+                  - op: rewriteName
+                    path: spec.tls.secretName
+                    sync:
+                      secret: true
+                reversePatches:
+                  - op: copyFromObject
+                    fromPath: status
+                    path: status
+            - fromVirtualCluster:
+                apiVersion: traefik.containo.us/v1
+                kind: Middleware
+                patches:
+                  - op: rewriteName
+                    path: spec.addPrefix.prefix
+                  - op: rewriteName
+                    path: spec.stripPrefix.prefixes
+                reversePatches:
+                  - op: copyFromObject
+                    fromPath: status
+                    path: status
