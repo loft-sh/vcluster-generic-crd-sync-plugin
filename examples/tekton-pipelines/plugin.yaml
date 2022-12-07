@@ -1,0 +1,68 @@
+plugin:
+  knative-serving:
+    image: ghcr.io/loft-sh/vcluster-generic-crd-plugin:latest
+    imagePullPolicy: Always
+    rbac:
+      role:
+        extraRules:
+          - apiGroups: ["tekton.dev"]
+            resources: ["tasks", "taskruns", "pipelines", "pipelineruns"]
+            verbs: ["create", "delete", "patch", "update", "get", "list", "watch"]
+    env:
+      - name: CONFIG
+        value: |-
+          version: v1beta1
+          mappings:
+            - fromVirtualCluster:
+                apiVersion: tekton.dev/v1beta1
+                kind: Task
+                reversePatches:
+                  - op: copyFromObject
+                    fromPath: status
+                    path: status
+            - fromVirtualCluster:
+                apiVersion: tekton.dev/v1beta1
+                kind: TaskRun
+                patches:
+                  - op: rewriteName
+                    path: spec.taskRef.name
+                reversePatches:
+                  - op: copyFromObject
+                    fromPath: status
+                    path: status
+            - fromVirtualCluster:
+                apiVersion: tekton.dev/v1beta1
+                kind: Pipeline
+                patches:
+                  - op: rewriteName
+                    path: spec.tasks[*].taskRef.name
+                  - op: rewriteName
+                    path: spec.resources[*].name
+                  - op: rewriteName
+                    path: spec.results[*].name
+                reversePatches:
+                  - op: copyFromObject
+                    fromPath: status
+                    path: status
+            - fromVirtualCluster:
+                apiVersion: tekton.dev/v1beta1
+                kind: PipelineRun
+                patches:
+                  - op: rewriteName
+                    path: spec.pipelineRef.name
+                reversePatches:
+                  - op: copyFromObject
+                    fromPath: status
+                    path: status
+                  - op: copyFromObject
+                    fromPath: spec.serviceAccountName
+                    path: spec.serviceAccountName
+                    conditions:
+                      - empty: true
+                        path: spec.serviceAccountName
+                  - op: copyFromObject
+                    fromPath: spec.timeout
+                    path: spec.timeout
+                    conditions:
+                      - empty: true
+                        path: spec.timeout
