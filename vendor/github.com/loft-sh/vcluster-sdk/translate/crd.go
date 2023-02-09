@@ -3,15 +3,14 @@ package translate
 import (
 	"context"
 	"fmt"
-	"math"
-	"time"
-
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1clientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"math"
+	"time"
 
 	"github.com/loft-sh/vcluster-sdk/applier"
 	"github.com/loft-sh/vcluster-sdk/log"
@@ -54,7 +53,6 @@ func EnsureCRDFromPhysicalCluster(ctx context.Context, pConfig *rest.Config, vCo
 	crdDefinition.ManagedFields = nil
 	crdDefinition.OwnerReferences = nil
 	crdDefinition.Status = apiextensionsv1.CustomResourceDefinitionStatus{}
-	crdDefinition.Spec.PreserveUnknownFields = false
 	vClient, err := apiextensionsv1clientset.NewForConfig(vConfig)
 	if err != nil {
 		return err
