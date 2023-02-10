@@ -129,7 +129,7 @@ github.com/json-iterator/go
 # github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de
 ## explicit
 github.com/liggitt/tabwriter
-# github.com/loft-sh/vcluster-sdk v0.4.0
+# github.com/loft-sh/vcluster-sdk v0.4.1-0.20221202124202-30018e3b8875
 ## explicit; go 1.17
 github.com/loft-sh/vcluster-sdk/applier
 github.com/loft-sh/vcluster-sdk/clienthelper
