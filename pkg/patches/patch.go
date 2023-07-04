@@ -23,15 +23,15 @@ type NameResolver interface {
 	TranslateNamespaceRef(namespace string) (string, error)
 }
 
-func ApplyPatches(obj1, obj2 client.Object, patchesConf []*config.Patch, reversePatchesConf []*config.Patch, nameResolver NameResolver) error {
-	node1, err := NewJSONNode(obj1)
+func ApplyPatches(destObj, sourceObj client.Object, patchesConf []*config.Patch, reversePatchesConf []*config.Patch, nameResolver NameResolver) error {
+	node1, err := NewJSONNode(destObj)
 	if err != nil {
 		return errors.Wrap(err, "new json yaml node")
 	}
 
 	var node2 *yaml.Node
-	if obj2 != nil {
-		node2, err = NewJSONNode(obj2)
+	if sourceObj != nil {
+		node2, err = NewJSONNode(sourceObj)
 		if err != nil {
 			return errors.Wrap(err, "new json yaml node")
 		}
@@ -46,7 +46,7 @@ func ApplyPatches(obj1, obj2 client.Object, patchesConf []*config.Patch, reverse
 
 	// remove ignore paths from patched object
 	for _, p := range reversePatchesConf {
-		if p.Path == "" || (p.Ignore != nil && !*p.Ignore) {
+		if p.Path == "" || (p.Ignore != nil && *p.Ignore) {
 			continue
 		}
 
@@ -64,7 +64,7 @@ func ApplyPatches(obj1, obj2 client.Object, patchesConf []*config.Patch, reverse
 		return errors.Wrap(err, "marshal yaml")
 	}
 
-	err = jsonyaml.Unmarshal(objYaml, obj1)
+	err = jsonyaml.Unmarshal(objYaml, destObj)
 	if err != nil {
 		return errors.Wrap(err, "convert object")
 	}
