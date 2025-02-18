@@ -28,6 +28,9 @@ func main() {
 	if err != nil {
 		klog.Fatalf("Error initializing plugin: %v", err)
 	}
+	if registerCtx.TargetNamespace == "" {
+		registerCtx.TargetNamespace = registerCtx.CurrentNamespace
+	}
 
 	c := os.Getenv(ConfigurationEnvVar)
 	if c == "" {
