@@ -7,7 +7,7 @@ require (
 	github.com/loft-sh/vcluster-sdk v0.4.1-0.20221202124202-30018e3b8875
 	github.com/pkg/errors v0.9.1
 	github.com/vmware-labs/yaml-jsonpath v0.3.2
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	gopkg.in/yaml.v3 v3.0.0
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.24.2
 	k8s.io/apimachinery v0.24.2
