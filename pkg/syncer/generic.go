@@ -3,6 +3,7 @@ package syncer
 import (
 	"context"
 	"fmt"
+
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/config"
 	"github.com/loft-sh/vcluster-generic-crd-plugin/pkg/patches"
 	"github.com/loft-sh/vcluster-sdk/log"
@@ -40,8 +41,8 @@ func (s *patcher) ApplyPatches(ctx context.Context, fromObj, toObj client.Object
 	}
 	toObjCopied := toObjBase.DeepCopy()
 
-	// apply patches on from object
-	err = patches.ApplyPatches(toObjCopied, toObj, patchesConfig, reversePatchesConfig, nameResolver)
+	// apply patches on toObjCopied
+	err = patches.ApplyPatches(toObjCopied, fromObj, patchesConfig, reversePatchesConfig, nameResolver)
 	if err != nil {
 		return nil, fmt.Errorf("error applying patches: %v", err)
 	}
@@ -78,15 +79,15 @@ func (s *patcher) ApplyPatches(ctx context.Context, fromObj, toObj client.Object
 	return outObject, nil
 }
 
-func (s *patcher) ApplyReversePatches(ctx context.Context, fromObj, otherObj client.Object, reversePatchConfig []*config.Patch, nameResolver patches.NameResolver) (controllerutil.OperationResult, error) {
-	originalUnstructured, err := toUnstructured(fromObj)
+func (s *patcher) ApplyReversePatches(ctx context.Context, destObj, sourceObj client.Object, reversePatchConfig []*config.Patch, nameResolver patches.NameResolver) (controllerutil.OperationResult, error) {
+	originalUnstructured, err := toUnstructured(destObj)
 	if err != nil {
 		return controllerutil.OperationResultNone, err
 	}
-	fromCopied := originalUnstructured.DeepCopy()
+	destCopied := originalUnstructured.DeepCopy()
 
-	// apply patches on from object
-	err = patches.ApplyPatches(fromCopied, otherObj, reversePatchConfig, nil, nameResolver)
+	// apply patches on destCopied obj
+	err = patches.ApplyPatches(destCopied, sourceObj, reversePatchConfig, nil, nameResolver)
 	if err != nil {
 		return controllerutil.OperationResultNone, fmt.Errorf("error applying reverse patches: %v", err)
 	}
@@ -97,15 +98,15 @@ func (s *patcher) ApplyReversePatches(ctx context.Context, fromObj, otherObj cli
 		if err != nil {
 			return controllerutil.OperationResultNone, err
 		}
-		afterStatus, hasAfterStatus, err := unstructured.NestedFieldCopy(fromCopied.Object, "status")
+		afterStatus, hasAfterStatus, err := unstructured.NestedFieldCopy(destCopied.Object, "status")
 		if err != nil {
 			return controllerutil.OperationResultNone, err
 		}
 
 		// update status
 		if (hasBeforeStatus || hasAfterStatus) && !equality.Semantic.DeepEqual(beforeStatus, afterStatus) {
-			s.log.Infof("Update status of %s during reverse patching", fromCopied.GetName())
-			err = s.fromClient.Status().Update(ctx, fromCopied)
+			s.log.Infof("Update status of %s during reverse patching", destCopied.GetName())
+			err = s.fromClient.Status().Update(ctx, destCopied)
 			if err != nil {
 				return controllerutil.OperationResultNone, errors.Wrap(err, "update reverse status")
 			}
@@ -117,14 +118,14 @@ func (s *patcher) ApplyReversePatches(ctx context.Context, fromObj, otherObj cli
 			unstructured.RemoveNestedField(originalUnstructured.Object, "status")
 		}
 		if hasAfterStatus {
-			unstructured.RemoveNestedField(fromCopied.Object, "status")
+			unstructured.RemoveNestedField(destCopied.Object, "status")
 		}
 	}
 
 	// compare rest of the object
-	if !equality.Semantic.DeepEqual(originalUnstructured, fromCopied) {
-		s.log.Infof("Update %s during reverse patching", fromCopied.GetName())
-		err = s.fromClient.Update(ctx, fromCopied)
+	if !equality.Semantic.DeepEqual(originalUnstructured, destCopied) {
+		s.log.Infof("Update %s during reverse patching", destCopied.GetName())
+		err = s.fromClient.Update(ctx, destCopied)
 		if err != nil {
 			return controllerutil.OperationResultNone, errors.Wrap(err, "update reverse")
 		}

@@ -1,0 +1,139 @@
+plugin:
+  knative-serving:
+    image: ghcr.io/loft-sh/vcluster-generic-crd-plugin:latest
+    imagePullPolicy: Always
+    rbac:
+      role:
+        extraRules:
+          - apiGroups: ["serving.knative.dev"]
+            resources: ["services", "configurations", "revisions", "routes"]
+            verbs: ["create", "delete", "patch", "update", "get", "list", "watch"]
+      clusterRole:
+        extraRules:
+          - apiGroups: ["apiextensions.k8s.io"]
+            resources: ["customresourcedefinitions"]
+            verbs: ["get", "list", "watch"]
+    env:
+      - name: CONFIG
+        value: |-
+          version: v1beta1
+          mappings:
+            - fromVirtualCluster:
+                apiVersion: serving.knative.dev/v1
+                kind: Service
+                patches: []
+                reversePatches:
+                  - op: copyFromObject
+                    fromPath: status
+                    path: status
+                  - op: copyFromObject
+                    fromPath: spec.template.spec.containerConcurrency
+                    path: spec.template.spec.containerConcurrency
+                    conditions:
+                      - empty: true
+                        path: spec.template.spec.containerConcurrency
+                    ignore: true
+                  - op: copyFromObject
+                    fromPath: spec.template.spec.containers[0].name
+                    path: spec.template.spec.containers[0].name
+                    conditions:
+                      - empty: true
+                        path: spec.template.spec.containers[0].name
+                    ignore: true
+                  - op: copyFromObject
+                    fromPath: spec.template.spec.containers[0].readinessProbe
+                    path: spec.template.spec.containers[0].readinessProbe
+                    conditions:
+                      - empty: true
+                        path: spec.template.spec.containers[0].readinessProbe
+                    ignore: true
+                  - op: copyFromObject
+                    fromPath: spec.template.spec.timeoutSeconds
+                    path: spec.template.spec.timeoutSeconds
+                    conditions:
+                      - empty: true
+                        path: spec.template.spec.timeoutSeconds
+                    ignore: true
+                  - op: copyFromObject
+                    fromPath: spec.template.spec.responseStartTimeoutSeconds
+                    path: spec.template.spec.responseStartTimeoutSeconds
+                    conditions:
+                      - empty: true
+                        path: spec.template.spec.responseStartTimeoutSeconds
+                    ignore: true
+                  - op: copyFromObject
+                    fromPath: spec.template.spec.idleTimeoutSeconds
+                    path: spec.template.spec.idleTimeoutSeconds
+                    conditions:
+                      - empty: true
+                        path: spec.template.spec.idleTimeoutSeconds
+                    ignore: true
+                  - op: copyFromObject
+                    fromPath: spec.traffic
+                    path: spec.traffic
+                    conditions:
+                      - empty: true
+                        path: spec.traffic
+                    ignore: true
+            - fromVirtualCluster:
+                apiVersion: serving.knative.dev/v1
+                kind: Configuration
+                reversePatches:
+                  - op: copyFromObject
+                    fromPath: status
+                    path: status
+                  - op: copyFromObject
+                    fromPath: spec.template.spec.containerConcurrency
+                    path: spec.template.spec.containerConcurrency
+                    conditions:
+                      - empty: true
+                        path: spec.template.spec.containerConcurrency
+                    ignore: true
+                  - op: copyFromObject
+                    fromPath: spec.template.spec.containers[0].name
+                    path: spec.template.spec.containers[0].name
+                    conditions:
+                      - empty: true
+                        path: spec.template.spec.containers[0].name
+                    ignore: true
+                  - op: copyFromObject
+                    fromPath: spec.template.spec.containers[0].readinessProbe
+                    path: spec.template.spec.containers[0].readinessProbe
+                    conditions:
+                      - empty: true
+                        path: spec.template.spec.containers[0].readinessProbe
+                    ignore: true
+                  - op: copyFromObject
+                    fromPath: spec.template.spec.timeoutSeconds
+                    path: spec.template.spec.timeoutSeconds
+                    conditions:
+                      - empty: true
+                        path: spec.template.spec.timeoutSeconds
+                    ignore: true
+                  - op: copyFromObject
+                    fromPath: spec.template.spec.responseStartTimeoutSeconds
+                    path: spec.template.spec.responseStartTimeoutSeconds
+                    conditions:
+                      - empty: true
+                        path: spec.template.spec.responseStartTimeoutSeconds
+                    ignore: true
+                  - op: copyFromObject
+                    fromPath: spec.template.spec.idleTimeoutSeconds
+                    path: spec.template.spec.idleTimeoutSeconds
+                    conditions:
+                      - empty: true
+                        path: spec.template.spec.idleTimeoutSeconds
+                    ignore: true
+            - fromVirtualCluster:
+                apiVersion: serving.knative.dev/v1
+                kind: Route
+                reversePatches:
+                  - op: copyFromObject
+                    fromPath: status
+                    path: status
+                  - op: copyFromObject
+                    fromPath: spec.traffic
+                    path: spec.traffic
+                    conditions:
+                      - empty: true
+                        path: spec.traffic
